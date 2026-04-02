@@ -1,6 +1,13 @@
+"""Indexing and lookup helpers for the Novellum note graph.
+
+The index is rebuilt from note files when needed. That keeps the source of
+truth in the note files themselves while still giving the CLI a single place to
+resolve references, backlinks, and search queries.
+"""
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from novellum.models import Note, Workspace
 from novellum.storage import list_notes
@@ -8,6 +15,20 @@ from novellum.storage import list_notes
 
 @dataclass(slots=True)
 class IndexedLink:
+    """A link enriched with resolution information.
+
+    Parameters
+    ----------
+    source_id : str
+        ID of the note containing the link.
+    target : str
+        Raw target text from the ``\\nvlink`` command.
+    resolved_id : str or None
+        Canonical resolved note ID when the target is uniquely resolvable.
+    label : str or None, optional
+        Optional display label from the source note.
+    """
+
     source_id: str
     target: str
     resolved_id: str | None
@@ -16,6 +37,22 @@ class IndexedLink:
 
 @dataclass(slots=True)
 class NoteIndex:
+    """In-memory representation of note resolution and graph relationships.
+
+    Parameters
+    ----------
+    notes_by_id : dict[str, Note]
+        Canonical notes keyed by note ID.
+    aliases : dict[str, list[str]]
+        Alias lookup map. Values remain lists because aliases may be ambiguous.
+    outbound : dict[str, list[IndexedLink]]
+        Outbound links keyed by source note ID.
+    backlinks : dict[str, list[IndexedLink]]
+        Incoming links keyed by destination note ID.
+    broken_links : dict[str, list[IndexedLink]]
+        Unresolved or ambiguous links keyed by source note ID.
+    """
+
     notes_by_id: dict[str, Note]
     aliases: dict[str, list[str]]
     outbound: dict[str, list[IndexedLink]]
@@ -24,6 +61,19 @@ class NoteIndex:
 
 
 def build_index(workspace: Workspace) -> NoteIndex:
+    """Build a note graph index for a workspace.
+
+    Parameters
+    ----------
+    workspace : Workspace
+        Workspace whose notes should be indexed.
+
+    Returns
+    -------
+    NoteIndex
+        Fully populated in-memory index.
+    """
+
     notes = list_notes(workspace)
     notes_by_id = {note.metadata.id: note for note in notes}
     aliases = _build_aliases(notes)
@@ -35,6 +85,9 @@ def build_index(workspace: Workspace) -> NoteIndex:
         source_id = note.metadata.id
         for link in note.links:
             matches = resolve_reference(link.target, notes_by_id, aliases)
+            # Only exact or uniquely aliased matches resolve. Ambiguous aliases
+            # are intentionally treated the same as broken links so the CLI does
+            # not silently guess the wrong target.
             resolved_id = matches[0] if len(matches) == 1 else None
             indexed = IndexedLink(
                 source_id=source_id,
@@ -58,6 +111,26 @@ def build_index(workspace: Workspace) -> NoteIndex:
 
 
 def find_note(index: NoteIndex, reference: str) -> Note:
+    """Resolve a user-supplied reference to a single note.
+
+    Parameters
+    ----------
+    index : NoteIndex
+        Index used for note and alias resolution.
+    reference : str
+        Canonical ID or alias.
+
+    Returns
+    -------
+    Note
+        Resolved note.
+
+    Raises
+    ------
+    LookupError
+        Raised when the reference is missing or ambiguous.
+    """
+
     matches = resolve_reference(reference, index.notes_by_id, index.aliases)
     if not matches:
         raise LookupError(f"No note found for '{reference}'.")
@@ -68,9 +141,26 @@ def find_note(index: NoteIndex, reference: str) -> Note:
 
 
 def search_notes(index: NoteIndex, query: str) -> list[Note]:
+    """Run a case-insensitive substring search across note content.
+
+    Parameters
+    ----------
+    index : NoteIndex
+        Note index providing notes to search.
+    query : str
+        User-supplied search term.
+
+    Returns
+    -------
+    list[Note]
+        Matching notes sorted by canonical ID.
+    """
+
     lowered = query.casefold()
     matches: list[Note] = []
     for note in index.notes_by_id.values():
+        # Search intentionally spans both metadata and body so a single command
+        # can cover titles, tags, aliases, IDs, and free text.
         fields = [
             note.metadata.id,
             note.metadata.title,
@@ -90,12 +180,42 @@ def resolve_reference(
     notes_by_id: dict[str, Note],
     aliases: dict[str, list[str]],
 ) -> list[str]:
+    """Resolve a raw reference string to candidate note IDs.
+
+    Parameters
+    ----------
+    reference : str
+        Canonical ID or alias to resolve.
+    notes_by_id : dict[str, Note]
+        Canonical note mapping.
+    aliases : dict[str, list[str]]
+        Alias mapping.
+
+    Returns
+    -------
+    list[str]
+        Candidate note IDs. A list of length one means unique resolution.
+    """
+
     if reference in notes_by_id:
         return [reference]
     return sorted(set(aliases.get(reference, [])))
 
 
 def _build_aliases(notes: list[Note]) -> dict[str, list[str]]:
+    """Build the alias lookup map from loaded notes.
+
+    Parameters
+    ----------
+    notes : list[Note]
+        Notes to scan.
+
+    Returns
+    -------
+    dict[str, list[str]]
+        Alias mapping where values are all note IDs that claim the alias.
+    """
+
     aliases: dict[str, list[str]] = {}
     for note in notes:
         for alias in note.metadata.aliases:

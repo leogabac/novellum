@@ -1,9 +1,13 @@
+"""Tests for note parsing and link extraction."""
+
 from pathlib import Path
 
 from novellum.parser import extract_links, parse_note_text
 
 
 def test_parse_note_text_reads_comment_metadata_block() -> None:
+    """Parser should read comment metadata and preserve link labels."""
+
     text = """% novellum:begin
 % id: spectral-gap
 % title: Spectral Gap
@@ -27,6 +31,8 @@ See \\nvlink[The Poincare Lemma]{lemma-poincare}.
 
 
 def test_extract_links_parses_latex_native_link_commands() -> None:
+    """Link extraction should support labeled and unlabeled ``\\nvlink``."""
+
     body = r"\nvlink{a-note} and \nvlink[Displayed]{other-note}"
 
     links = extract_links(body)
@@ -36,6 +42,8 @@ def test_extract_links_parses_latex_native_link_commands() -> None:
 
 
 def test_extract_links_ignores_commented_link_examples() -> None:
+    """Commented examples should not produce real graph edges."""
+
     body = "% \\nvlink{commented}\n\\nvlink{live-link}\n"
 
     links = extract_links(body)

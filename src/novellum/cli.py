@@ -1,3 +1,9 @@
+"""Command-line entrypoint for Novellum.
+
+The CLI currently uses the standard library ``argparse`` module to keep the
+runtime dependency footprint low while the command surface is still small.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -10,7 +16,16 @@ from novellum.commands.new_note import new_command
 from novellum.commands.search_notes import search_command
 from novellum.commands.show_note import show_command
 
+
 def build_parser() -> argparse.ArgumentParser:
+    """Build the top-level argument parser.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        Parser configured with all supported subcommands.
+    """
+
     parser = argparse.ArgumentParser(prog="novellum", description="A CLI for linked LaTeX research notes.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -45,9 +60,25 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the Novellum CLI.
+
+    Parameters
+    ----------
+    argv : list[str] or None, optional
+        Explicit argument vector. When ``None``, arguments are read from the
+        process command line.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    """
+
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    # Dispatch stays explicit instead of dynamic so command wiring is easy to
+    # read while the CLI surface remains small.
     if args.command == "init":
         return init_command(Path(args.path))
     if args.command == "new":

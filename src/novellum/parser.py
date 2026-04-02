@@ -1,7 +1,16 @@
+"""Parsing helpers for Novellum note files.
+
+Notes are stored as plain ``.tex`` files. Metadata lives in a leading LaTeX
+comment block so the file remains valid and readable LaTeX. Links are encoded
+through a dedicated ``\\nvlink`` macro, which lets us stay LaTeX-native while
+still exposing explicit graph structure to the CLI.
+"""
+
 from __future__ import annotations
 
 import re
 from dataclasses import asdict
+from pathlib import Path
 
 from novellum.models import Link, Note, NoteMetadata
 
@@ -13,16 +22,48 @@ LINK_PATTERN = re.compile(
 )
 
 
-def parse_note_text(text: str, path) -> Note:
+def parse_note_text(text: str, path: Path) -> Note:
+    """Parse a note file into metadata, body, and outbound links.
+
+    Parameters
+    ----------
+    text : str
+        Raw file contents.
+    path : Path
+        Path associated with the file for diagnostics and note identity.
+
+    Returns
+    -------
+    Note
+        Parsed note representation.
+    """
+
     lines = text.splitlines()
     metadata, body_start = _parse_metadata(lines)
+    # The body begins immediately after the metadata terminator. Leading blank
+    # lines are stripped so templates render cleanly in command output.
     body = "\n".join(lines[body_start:]).lstrip("\n")
     links = extract_links(body)
     return Note(path=path, metadata=metadata, body=body, links=links)
 
 
 def extract_links(body: str) -> list[Link]:
+    """Extract ``\\nvlink`` targets from a note body.
+
+    Parameters
+    ----------
+    body : str
+        Note body without the metadata block.
+
+    Returns
+    -------
+    list[Link]
+        Parsed link objects in encounter order.
+    """
+
     links: list[Link] = []
+    # Comment lines often contain examples in templates. Excluding them keeps
+    # instructional comments from polluting the note graph.
     searchable_body = "\n".join(
         line for line in body.splitlines() if not line.lstrip().startswith("%")
     )
@@ -32,6 +73,21 @@ def extract_links(body: str) -> list[Link]:
 
 
 def render_note_text(metadata: NoteMetadata, body: str) -> str:
+    """Render a note back to disk using the Novellum metadata format.
+
+    Parameters
+    ----------
+    metadata : NoteMetadata
+        Metadata to serialize.
+    body : str
+        LaTeX body content for the note.
+
+    Returns
+    -------
+    str
+        Complete note text ready to be written to a ``.tex`` file.
+    """
+
     meta = asdict(metadata)
     lines = [METADATA_BEGIN]
     for key in ("id", "title", "note_type", "created", "updated", "tags", "aliases"):
@@ -50,6 +106,24 @@ def render_note_text(metadata: NoteMetadata, body: str) -> str:
 
 
 def _parse_metadata(lines: list[str]) -> tuple[NoteMetadata, int]:
+    """Parse the leading metadata block from a note.
+
+    Parameters
+    ----------
+    lines : list[str]
+        Complete note content split into lines.
+
+    Returns
+    -------
+    tuple[NoteMetadata, int]
+        Parsed metadata and the index where the body begins.
+
+    Raises
+    ------
+    ValueError
+        Raised when the note is missing required metadata structure or fields.
+    """
+
     if not lines or lines[0].strip() != METADATA_BEGIN:
         raise ValueError("Note is missing the novellum metadata block.")
 
@@ -90,6 +164,19 @@ def _parse_metadata(lines: list[str]) -> tuple[NoteMetadata, int]:
 
 
 def _split_csv(value: str) -> list[str]:
+    """Parse a comma-separated metadata value into a list.
+
+    Parameters
+    ----------
+    value : str
+        Raw string value from the metadata block.
+
+    Returns
+    -------
+    list[str]
+        Trimmed non-empty items.
+    """
+
     if not value.strip():
         return []
     return [item.strip() for item in value.split(",") if item.strip()]

@@ -1,3 +1,5 @@
+"""Implementation of the ``novellum links`` command."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,6 +9,21 @@ from novellum.storage import find_workspace
 
 
 def links_command(reference: str, cwd: Path = Path(".")) -> int:
+    """Display outbound links, backlinks, and unresolved links for a note.
+
+    Parameters
+    ----------
+    reference : str
+        Note ID or alias.
+    cwd : Path, optional
+        Path used for workspace discovery.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    """
+
     workspace = find_workspace(cwd)
     index = build_index(workspace)
     note = find_note(index, reference)

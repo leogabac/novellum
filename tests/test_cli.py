@@ -1,3 +1,5 @@
+"""CLI-level tests for the current command surface."""
+
 from pathlib import Path
 import io
 from contextlib import redirect_stdout
@@ -6,6 +8,8 @@ from novellum.cli import main
 
 
 def test_init_command_creates_workspace(tmp_path: Path) -> None:
+    """``novellum init`` should create the workspace marker and config."""
+
     output = io.StringIO()
     with redirect_stdout(output):
         exit_code = main(["init", str(tmp_path)])
@@ -15,6 +19,8 @@ def test_init_command_creates_workspace(tmp_path: Path) -> None:
 
 
 def test_new_and_list_commands_work_in_workspace(tmp_path: Path) -> None:
+    """``new`` and ``list`` should create and display notes."""
+
     with redirect_stdout(io.StringIO()):
         main(["init", str(tmp_path)])
 
@@ -31,6 +37,8 @@ def test_new_and_list_commands_work_in_workspace(tmp_path: Path) -> None:
 
 
 def test_show_links_and_search_commands_work(tmp_path: Path) -> None:
+    """Navigation commands should work against a small hand-written graph."""
+
     with redirect_stdout(io.StringIO()):
         main(["init", str(tmp_path)])
 

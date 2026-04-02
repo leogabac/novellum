@@ -1,3 +1,5 @@
+"""Implementation of the ``novellum search`` command."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,6 +9,21 @@ from novellum.storage import find_workspace
 
 
 def search_command(query: str, cwd: Path = Path(".")) -> int:
+    """Search notes by metadata and body text.
+
+    Parameters
+    ----------
+    query : str
+        Case-insensitive search term.
+    cwd : Path, optional
+        Path used for workspace discovery.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    """
+
     workspace = find_workspace(cwd)
     index = build_index(workspace)
     matches = search_notes(index, query)

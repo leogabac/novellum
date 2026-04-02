@@ -1,9 +1,13 @@
+"""Tests for workspace initialization and note storage."""
+
 from pathlib import Path
 
 from novellum.storage import create_note, find_workspace, init_workspace, list_notes
 
 
 def test_init_workspace_creates_novellum_structure(tmp_path: Path) -> None:
+    """Workspace initialization should create the expected directory layout."""
+
     workspace = init_workspace(tmp_path)
 
     assert workspace.config_dir == tmp_path / ".novellum"
@@ -16,6 +20,8 @@ def test_init_workspace_creates_novellum_structure(tmp_path: Path) -> None:
 
 
 def test_create_note_writes_tex_file_with_comment_metadata(tmp_path: Path) -> None:
+    """New notes should be written as ``.tex`` files with comment metadata."""
+
     workspace = init_workspace(tmp_path)
 
     note_path = create_note(workspace, title="Spectral Gap Bound", note_type="concept")
@@ -27,6 +33,8 @@ def test_create_note_writes_tex_file_with_comment_metadata(tmp_path: Path) -> No
 
 
 def test_find_workspace_and_list_notes(tmp_path: Path) -> None:
+    """Workspace discovery should work from nested directories."""
+
     workspace = init_workspace(tmp_path)
     create_note(workspace, title="Alpha", note_type="concept")
     create_note(workspace, title="Beta", note_type="proof")
@@ -40,6 +48,8 @@ def test_find_workspace_and_list_notes(tmp_path: Path) -> None:
 
 
 def test_init_workspace_writes_vimtex_friendly_config(tmp_path: Path) -> None:
+    """New workspaces should include bibliography and LaTeX root settings."""
+
     workspace = init_workspace(tmp_path)
     config_text = (workspace.config_dir / "config.toml").read_text(encoding="utf-8")
 

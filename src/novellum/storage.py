@@ -1,3 +1,10 @@
+"""Workspace and note storage helpers.
+
+This module owns the filesystem conventions of a Novellum workspace. The rest
+of the application relies on these helpers to discover the workspace, create
+notes, and load templates without needing to know the on-disk layout directly.
+"""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -19,6 +26,19 @@ DEFAULT_BIBLIOGRAPHY_DIR = PACKAGE_ROOT / "bibliography"
 
 
 def init_workspace(root: Path) -> Workspace:
+    """Initialize a Novellum workspace at ``root``.
+
+    Parameters
+    ----------
+    root : Path
+        Target directory for the workspace.
+
+    Returns
+    -------
+    Workspace
+        Resolved workspace paths after initialization.
+    """
+
     root = root.resolve()
     config_dir = root / WORKSPACE_MARKER
     notes_dir = root / "notes"
@@ -27,6 +47,8 @@ def init_workspace(root: Path) -> Workspace:
     tex_dir = root / "tex"
     templates_dir = config_dir / "templates"
 
+    # The initializer is idempotent. Existing workspaces keep their files and
+    # only receive missing defaults.
     config_dir.mkdir(parents=True, exist_ok=True)
     notes_dir.mkdir(parents=True, exist_ok=True)
     build_dir.mkdir(parents=True, exist_ok=True)
@@ -73,6 +95,24 @@ def init_workspace(root: Path) -> Workspace:
 
 
 def find_workspace(start: Path) -> Workspace:
+    """Find the nearest Novellum workspace by walking upward from ``start``.
+
+    Parameters
+    ----------
+    start : Path
+        Starting location for workspace discovery.
+
+    Returns
+    -------
+    Workspace
+        Resolved workspace object for the first matching parent.
+
+    Raises
+    ------
+    FileNotFoundError
+        Raised when no ``.novellum`` directory exists in the search path.
+    """
+
     current = start.resolve()
     for candidate in (current, *current.parents):
         config_dir = candidate / WORKSPACE_MARKER
@@ -90,6 +130,19 @@ def find_workspace(start: Path) -> Workspace:
 
 
 def load_config(workspace: Workspace) -> dict:
+    """Load the TOML configuration for a workspace.
+
+    Parameters
+    ----------
+    workspace : Workspace
+        Workspace whose config should be loaded.
+
+    Returns
+    -------
+    dict
+        Parsed TOML configuration as nested Python dictionaries.
+    """
+
     config_path = workspace.config_dir / CONFIG_FILE
     return tomllib.loads(config_path.read_text(encoding="utf-8"))
 
@@ -102,6 +155,38 @@ def create_note(
     tags: list[str] | None = None,
     aliases: list[str] | None = None,
 ) -> Path:
+    """Create a new note file from workspace defaults and templates.
+
+    Parameters
+    ----------
+    workspace : Workspace
+        Target workspace.
+    title : str
+        Human-readable title for the note.
+    note_type : str
+        Note category to place the file under.
+    note_id : str or None, optional
+        Explicit stable note identifier. If omitted, a slug is derived from the
+        title.
+    tags : list[str] or None, optional
+        Optional tags to record in metadata.
+    aliases : list[str] or None, optional
+        Optional alternate references for note lookup.
+
+    Returns
+    -------
+    Path
+        Path to the newly created note file.
+
+    Raises
+    ------
+    ValueError
+        Raised when the note type is not part of the workspace configuration.
+    FileExistsError
+        Raised when a note with the resolved ID already exists in that
+        category.
+    """
+
     config = load_config(workspace)
     note_types = tuple(config["workspace"]["note_types"])
     if note_type not in note_types:
@@ -130,6 +215,21 @@ def create_note(
 
 
 def list_notes(workspace: Workspace, note_type: str | None = None) -> list[Note]:
+    """Load notes from the workspace.
+
+    Parameters
+    ----------
+    workspace : Workspace
+        Workspace to scan.
+    note_type : str or None, optional
+        Optional category filter.
+
+    Returns
+    -------
+    list[Note]
+        Parsed notes sorted by path.
+    """
+
     notes: list[Note] = []
     search_root = workspace.notes_dir / note_type if note_type else workspace.notes_dir
     if not search_root.exists():
@@ -142,10 +242,39 @@ def list_notes(workspace: Workspace, note_type: str | None = None) -> list[Note]
 
 
 def load_note(path: Path) -> Note:
+    """Load and parse a single note file.
+
+    Parameters
+    ----------
+    path : Path
+        Note file to parse.
+
+    Returns
+    -------
+    Note
+        Parsed note object.
+    """
+
     return parse_note_text(path.read_text(encoding="utf-8"), path=path)
 
 
 def load_template(workspace: Workspace, note_type: str) -> str:
+    """Load the template text for a note type.
+
+    Parameters
+    ----------
+    workspace : Workspace
+        Workspace providing the template directory.
+    note_type : str
+        Note category whose template should be loaded.
+
+    Returns
+    -------
+    str
+        Template contents. Falls back to ``default.tex`` when a specific
+        template does not exist.
+    """
+
     candidate = workspace.templates_dir / f"{note_type}.tex"
     if candidate.exists():
         return candidate.read_text(encoding="utf-8")
@@ -154,15 +283,38 @@ def load_template(workspace: Workspace, note_type: str) -> str:
 
 
 def slugify(value: str) -> str:
+    """Convert free-form text into a filesystem-safe note identifier.
+
+    Parameters
+    ----------
+    value : str
+        Input text, usually a note title.
+
+    Returns
+    -------
+    str
+        Lowercase hyphenated slug.
+    """
+
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.strip().lower()).strip("-")
     return slug or "note"
 
 
 def _utc_now() -> str:
+    """Return the current UTC time in a compact ISO 8601 format."""
+
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _default_config_text() -> str:
+    """Render the default workspace configuration file.
+
+    Returns
+    -------
+    str
+        TOML configuration content for a new workspace.
+    """
+
     rendered_types = ", ".join(f'"{note_type}"' for note_type in DEFAULT_NOTE_TYPES)
     return (
         "[workspace]\n"

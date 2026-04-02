@@ -1,3 +1,5 @@
+"""Implementation of the ``novellum show`` command."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,6 +9,21 @@ from novellum.storage import find_workspace
 
 
 def show_command(reference: str, cwd: Path = Path(".")) -> int:
+    """Display a note resolved by canonical ID or alias.
+
+    Parameters
+    ----------
+    reference : str
+        Note ID or alias.
+    cwd : Path, optional
+        Path used for workspace discovery.
+
+    Returns
+    -------
+    int
+        Process-style exit code.
+    """
+
     workspace = find_workspace(cwd)
     index = build_index(workspace)
     note = find_note(index, reference)

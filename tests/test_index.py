@@ -1,3 +1,5 @@
+"""Tests for note graph indexing and resolution."""
+
 from pathlib import Path
 
 from novellum.index import build_index, find_note, search_notes
@@ -5,10 +7,14 @@ from novellum.storage import init_workspace
 
 
 def write_note(path: Path, text: str) -> None:
+    """Write a note fixture to disk."""
+
     path.write_text(text, encoding="utf-8")
 
 
 def test_index_builds_backlinks_and_broken_links(tmp_path: Path) -> None:
+    """The index should separate resolved and unresolved relationships."""
+
     workspace = init_workspace(tmp_path)
     write_note(
         tmp_path / "notes" / "concept" / "alpha.tex",
@@ -49,6 +55,8 @@ See \\nvlink{alpha}.
 
 
 def test_find_note_resolves_ids_and_reports_ambiguous_aliases(tmp_path: Path) -> None:
+    """Alias lookup should fail loudly when multiple notes claim one alias."""
+
     workspace = init_workspace(tmp_path)
     write_note(
         tmp_path / "notes" / "concept" / "alpha.tex",
@@ -91,6 +99,8 @@ def test_find_note_resolves_ids_and_reports_ambiguous_aliases(tmp_path: Path) ->
 
 
 def test_search_notes_matches_metadata_and_body(tmp_path: Path) -> None:
+    """Search should match metadata fields and note body text."""
+
     workspace = init_workspace(tmp_path)
     write_note(
         tmp_path / "notes" / "concept" / "alpha.tex",

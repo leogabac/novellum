@@ -1,3 +1,9 @@
+"""Pytest configuration for local package imports.
+
+The project uses a ``src/`` layout. During test runs we add ``src`` to
+``sys.path`` so the package can be imported without installing it first.
+"""
+
 from __future__ import annotations
 
 import sys
