@@ -1,0 +1,6 @@
+[workspace]
+version = "0.1"
+notes_dir = "notes"
+build_dir = "build"
+note_types = ["concept", "proof", "paper", "experiment", "question", "log", "ref"]
+default_link_command = "\\nvlink"

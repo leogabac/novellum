@@ -63,26 +63,25 @@ Typical note types:
 
 Each note should be a single text file with:
 
-- Front matter for metadata
+- A leading LaTeX comment block for metadata
 - A body containing LaTeX content and inline links
 
 Suggested file format:
 
 ```text
----
-id: theorem-spectral-gap
-title: Spectral Gap Bound
-type: concept
-tags: [operator-theory, draft]
-created: 2026-04-02T00:00:00Z
-updated: 2026-04-02T00:00:00Z
-aliases: [gap bound]
-links: []
----
+% novellum:begin
+% id: theorem-spectral-gap
+% title: Spectral Gap Bound
+% type: concept
+% tags: operator-theory, draft
+% created: 2026-04-02T00:00:00Z
+% updated: 2026-04-02T00:00:00Z
+% aliases: gap bound
+% novellum:end
 
 \section{Spectral Gap Bound}
 
-This connects to [[lemma-poincare]] and [[paper-bakry-emery]].
+This connects to \nvlink{lemma-poincare} and \nvlink[Bakry-Emery]{paper-bakry-emery}.
 
 \[
 \lambda_1 \geq \cdots
@@ -91,9 +90,9 @@ This connects to [[lemma-poincare]] and [[paper-bakry-emery]].
 
 Notes:
 
-- Front matter can be YAML for simplicity
+- Metadata stays invisible to LaTeX because it is comment-based
 - The body remains plain LaTeX-oriented text
-- `links` may be derived automatically rather than manually maintained
+- `links` should be derived automatically rather than manually maintained
 - `id` should be the canonical stable identifier
 
 ## Proposed Repository Layout
@@ -168,10 +167,10 @@ novellum/
 
 ## Linking Syntax
 
-Use Obsidian-like links in the body:
+Use a LaTeX-native link macro in the body:
 
-- `[[note-id]]`
-- `[[note-id|Custom Label]]`
+- `\nvlink{note-id}`
+- `\nvlink[Custom Label]{note-id}`
 
 Possible future support:
 
@@ -181,7 +180,7 @@ Possible future support:
 
 For V1, keep it simple:
 
-- parse note IDs from double-bracket links
+- parse note IDs from `\nvlink`
 - resolve them against known note IDs and aliases
 - expose broken links in diagnostics
 
@@ -325,7 +324,7 @@ These are the decisions I would make unless later constraints change:
 - Use Python 3.12+
 - Use `src/` layout
 - Use `typer` for CLI
-- Use YAML front matter
+- Use LaTeX comment metadata blocks
 - Use file-based storage, not SQLite, for V1
 - Use deterministic note IDs generated from titles unless explicitly provided
 - Use `templates/` for note boilerplates
