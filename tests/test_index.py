@@ -125,3 +125,42 @@ Poincare inequality.
     assert [note.metadata.id for note in search_notes(index, "analysis")] == ["alpha"]
     assert [note.metadata.id for note in search_notes(index, "sg")] == ["alpha"]
     assert [note.metadata.id for note in search_notes(index, "poincare")] == ["alpha"]
+
+
+def test_build_index_rejects_duplicate_note_ids(tmp_path: Path) -> None:
+    """Index construction should fail loudly on duplicate canonical IDs."""
+
+    workspace = init_workspace(tmp_path)
+    write_note(
+        tmp_path / "notes" / "concept" / "alpha.tex",
+        """% novellum:begin
+% id: duplicate
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+""",
+    )
+    write_note(
+        tmp_path / "notes" / "proof" / "beta.tex",
+        """% novellum:begin
+% id: duplicate
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+""",
+    )
+
+    try:
+        build_index(workspace)
+    except ValueError as error:
+        assert "Duplicate note ID" in str(error)
+    else:
+        raise AssertionError("Expected duplicate IDs to make index building fail.")

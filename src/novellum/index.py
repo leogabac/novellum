@@ -75,7 +75,7 @@ def build_index(workspace: Workspace) -> NoteIndex:
     """
 
     notes = list_notes(workspace)
-    notes_by_id = {note.metadata.id: note for note in notes}
+    notes_by_id = _build_notes_by_id(notes)
     aliases = _build_aliases(notes)
     outbound: dict[str, list[IndexedLink]] = {note.metadata.id: [] for note in notes}
     backlinks: dict[str, list[IndexedLink]] = {note.metadata.id: [] for note in notes}
@@ -221,3 +221,35 @@ def _build_aliases(notes: list[Note]) -> dict[str, list[str]]:
         for alias in note.metadata.aliases:
             aliases.setdefault(alias, []).append(note.metadata.id)
     return aliases
+
+
+def _build_notes_by_id(notes: list[Note]) -> dict[str, Note]:
+    """Build the canonical note mapping and reject duplicate IDs.
+
+    Parameters
+    ----------
+    notes : list[Note]
+        Notes to scan.
+
+    Returns
+    -------
+    dict[str, Note]
+        Canonical note mapping.
+
+    Raises
+    ------
+    ValueError
+        Raised when multiple files declare the same canonical note ID.
+    """
+
+    notes_by_id: dict[str, Note] = {}
+    for note in notes:
+        existing = notes_by_id.get(note.metadata.id)
+        if existing is not None:
+            raise ValueError(
+                "Duplicate note ID "
+                f"'{note.metadata.id}' found in "
+                f"{existing.path} and {note.path}"
+            )
+        notes_by_id[note.metadata.id] = note
+    return notes_by_id

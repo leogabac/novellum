@@ -183,8 +183,8 @@ def create_note(
     ValueError
         Raised when the note type is not part of the workspace configuration.
     FileExistsError
-        Raised when a note with the resolved ID already exists in that
-        category.
+        Raised when a note with the resolved ID already exists anywhere in the
+        workspace.
     """
 
     config = load_config(workspace)
@@ -195,9 +195,12 @@ def create_note(
     created_at = _utc_now()
     resolved_id = note_id or slugify(title)
     note_path = workspace.notes_dir / note_type / f"{resolved_id}.tex"
+    existing_note = find_note_path_by_id(workspace, resolved_id)
 
-    if note_path.exists():
-        raise FileExistsError(f"Note already exists: {note_path}")
+    if existing_note is not None:
+        raise FileExistsError(
+            f"Note ID '{resolved_id}' already exists at {existing_note.relative_to(workspace.root)}"
+        )
 
     metadata = NoteMetadata(
         id=resolved_id,
@@ -256,6 +259,29 @@ def load_note(path: Path) -> Note:
     """
 
     return parse_note_text(path.read_text(encoding="utf-8"), path=path)
+
+
+def find_note_path_by_id(workspace: Workspace, note_id: str) -> Path | None:
+    """Find an existing note path by canonical note ID.
+
+    Parameters
+    ----------
+    workspace : Workspace
+        Workspace to scan.
+    note_id : str
+        Canonical note identifier to look for.
+
+    Returns
+    -------
+    Path or None
+        Matching note path when found, otherwise ``None``.
+    """
+
+    for path in sorted(workspace.notes_dir.rglob("*.tex")):
+        note = load_note(path)
+        if note.metadata.id == note_id:
+            return path
+    return None
 
 
 def load_template(workspace: Workspace, note_type: str) -> str:

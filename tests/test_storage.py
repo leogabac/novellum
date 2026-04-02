@@ -1,6 +1,7 @@
 """Tests for workspace initialization and note storage."""
 
 from pathlib import Path
+import pytest
 
 from novellum.storage import create_note, find_workspace, init_workspace, list_notes
 
@@ -45,6 +46,16 @@ def test_find_workspace_and_list_notes(tmp_path: Path) -> None:
 
     assert discovered.root == tmp_path
     assert len(notes) == 2
+
+
+def test_create_note_rejects_duplicate_ids_across_categories(tmp_path: Path) -> None:
+    """Note IDs should be globally unique across the entire workspace."""
+
+    workspace = init_workspace(tmp_path)
+    create_note(workspace, title="Alpha", note_type="concept", note_id="shared-id")
+
+    with pytest.raises(FileExistsError, match="shared-id"):
+        create_note(workspace, title="Beta", note_type="proof", note_id="shared-id")
 
 
 def test_init_workspace_writes_vimtex_friendly_config(tmp_path: Path) -> None:
