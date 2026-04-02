@@ -35,5 +35,6 @@ class Workspace:
     config_dir: Path
     notes_dir: Path
     build_dir: Path
+    bibliography_dir: Path
     templates_dir: Path
-
+    tex_dir: Path

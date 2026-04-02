@@ -14,6 +14,8 @@ WORKSPACE_MARKER = ".novellum"
 CONFIG_FILE = "config.toml"
 PACKAGE_ROOT = Path(__file__).resolve().parent
 DEFAULT_TEMPLATES_DIR = PACKAGE_ROOT / "templates"
+DEFAULT_TEX_DIR = PACKAGE_ROOT / "tex"
+DEFAULT_BIBLIOGRAPHY_DIR = PACKAGE_ROOT / "bibliography"
 
 
 def init_workspace(root: Path) -> Workspace:
@@ -21,11 +23,15 @@ def init_workspace(root: Path) -> Workspace:
     config_dir = root / WORKSPACE_MARKER
     notes_dir = root / "notes"
     build_dir = root / "build"
+    bibliography_dir = root / "bibliography"
+    tex_dir = root / "tex"
     templates_dir = config_dir / "templates"
 
     config_dir.mkdir(parents=True, exist_ok=True)
     notes_dir.mkdir(parents=True, exist_ok=True)
     build_dir.mkdir(parents=True, exist_ok=True)
+    bibliography_dir.mkdir(parents=True, exist_ok=True)
+    tex_dir.mkdir(parents=True, exist_ok=True)
     templates_dir.mkdir(parents=True, exist_ok=True)
 
     for note_type in DEFAULT_NOTE_TYPES:
@@ -40,12 +46,29 @@ def init_workspace(root: Path) -> Workspace:
         if not destination.exists():
             shutil.copyfile(template, destination)
 
+    for tex_asset in DEFAULT_TEX_DIR.glob("*.tex"):
+        destination = tex_dir / tex_asset.name
+        if not destination.exists():
+            shutil.copyfile(tex_asset, destination)
+
+    style_asset = DEFAULT_TEX_DIR / "novellum.sty"
+    style_destination = tex_dir / style_asset.name
+    if not style_destination.exists():
+        shutil.copyfile(style_asset, style_destination)
+
+    for bibliography_asset in DEFAULT_BIBLIOGRAPHY_DIR.glob("*.bib"):
+        destination = bibliography_dir / bibliography_asset.name
+        if not destination.exists():
+            shutil.copyfile(bibliography_asset, destination)
+
     return Workspace(
         root=root,
         config_dir=config_dir,
         notes_dir=notes_dir,
         build_dir=build_dir,
+        bibliography_dir=bibliography_dir,
         templates_dir=templates_dir,
+        tex_dir=tex_dir,
     )
 
 
@@ -59,7 +82,9 @@ def find_workspace(start: Path) -> Workspace:
                 config_dir=config_dir,
                 notes_dir=candidate / "notes",
                 build_dir=candidate / "build",
+                bibliography_dir=candidate / "bibliography",
                 templates_dir=config_dir / "templates",
+                tex_dir=candidate / "tex",
             )
     raise FileNotFoundError("No novellum workspace found. Run 'novellum init' first.")
 
@@ -144,7 +169,9 @@ def _default_config_text() -> str:
         'version = "0.1"\n'
         'notes_dir = "notes"\n'
         'build_dir = "build"\n'
+        'bibliography = ["bibliography/references.bib"]\n'
+        'tex_dir = "tex"\n'
+        'workspace_root = "tex/workspace.tex"\n'
         f"note_types = [{rendered_types}]\n"
         'default_link_command = "\\\\nvlink"\n'
     )
-

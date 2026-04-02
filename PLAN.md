@@ -48,7 +48,7 @@ Typical note types:
 - `experiment`: computational results or test runs
 - `question`: unresolved issues
 - `log`: daily or session-based research journal entries
-- `ref`: bibliography or citation helper notes
+- `ref`: literature notes or citation-related notes
 
 ## Design Principles
 
@@ -102,6 +102,11 @@ novellum/
   README.md
   PLAN.md
   pyproject.toml
+  bibliography/
+    references.bib
+  tex/
+    workspace.tex
+    novellum.sty
   src/
     novellum/
       __init__.py
@@ -184,6 +189,18 @@ For V1, keep it simple:
 - resolve them against known note IDs and aliases
 - expose broken links in diagnostics
 
+## Citations
+
+Use standard LaTeX citation commands in note bodies, for example `\cite{key}`.
+
+Bibliography management should be workspace-level:
+
+- default shared bibliography: `bibliography/references.bib`
+- real LaTeX root document: `tex/workspace.tex`
+- helper package for Novellum macros: `tex/novellum.sty`
+
+This keeps Novellum compatible with tools like VimTeX and biblatex, because the workspace looks like a normal LaTeX project rather than a custom note format with custom citation handling.
+
 ## Storage Strategy
 
 Recommended workspace structure:
@@ -199,6 +216,11 @@ notes/
   experiment/
   question/
   log/
+bibliography/
+  references.bib
+tex/
+  workspace.tex
+  novellum.sty
 build/
 templates/
 ```
@@ -208,6 +230,8 @@ Notes:
 - Source of truth is the note files under `notes/`
 - `.novellum/index.json` is a generated cache, rebuildable at any time
 - `build/` holds generated stitched `.tex` and compiled output
+- `bibliography/references.bib` is the default shared citation database
+- `tex/workspace.tex` acts as the default compilation root for editor tooling
 
 ## Architecture
 
@@ -216,7 +240,7 @@ Notes:
 - `models.py`
   - note metadata, note object, workspace config
 - `parser.py`
-  - front matter parsing and link extraction
+  - comment metadata parsing and link extraction
 - `storage.py`
   - file layout, note load/save, workspace discovery
 - `index.py`
@@ -228,13 +252,11 @@ Notes:
 
 ### Recommended dependencies
 
-- `typer` for CLI ergonomics
-- `pydantic` or `dataclasses` for models
-- `PyYAML` for front matter parsing
-- `rich` for readable CLI output
+- standard library for the initial CLI
+- `dataclasses` for models
 - `pytest` for tests
 
-Keep the dependency set small. If possible, start with standard library plus `typer` and `PyYAML`.
+Keep the dependency set small until real workflow pressure appears.
 
 ## MVP Definition
 
@@ -243,7 +265,7 @@ The first version is successful if it can do all of the following:
 1. Initialize a workspace
 2. Create typed notes from templates
 3. Store notes as plain text with metadata
-4. Parse `[[links]]`
+4. Parse `\nvlink`
 5. Build an index of notes and backlinks
 6. Search notes by text, title, tag, and type
 7. Stitch selected notes into one LaTeX output

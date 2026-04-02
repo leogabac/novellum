@@ -1,0 +1,13 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{novellum}[2026/04/03 Novellum note helpers]
+
+\RequirePackage{xparse}
+\RequirePackage{hyperref}
+
+\NewDocumentCommand{\nvlink}{O{} m}{%
+  \IfNoValueTF{#1}{%
+    \texttt{#2}%
+  }{%
+    #1%
+  }%
+}
