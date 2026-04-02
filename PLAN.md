@@ -295,9 +295,20 @@ Deliverable:
 
 - user can create and edit notes with stable IDs
 
+### Phase 1.5: Navigation baseline
+
+- Implement note resolution by ID and alias
+- Build a workspace index for outbound links, backlinks, and broken links
+- Implement `show`, `links`, and `search`
+- Treat ambiguous aliases as errors instead of guessing
+
+Deliverable:
+
+- user can inspect, navigate, and search the note graph from the CLI
+
 ### Phase 2: Parsing + indexing
 
-- Parse front matter and body
+- Parse note bodies and metadata blocks
 - Extract links from body
 - Build workspace index
 - Implement `list`, `show`, `links`, `backlinks`

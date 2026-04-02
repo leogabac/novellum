@@ -4,8 +4,11 @@ import argparse
 from pathlib import Path
 
 from novellum.commands.init import init_command
+from novellum.commands.links import links_command
 from novellum.commands.list_notes import list_command
 from novellum.commands.new_note import new_command
+from novellum.commands.search_notes import search_command
+from novellum.commands.show_note import show_command
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="novellum", description="A CLI for linked LaTeX research notes.")
@@ -25,6 +28,18 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser = subparsers.add_parser("list", help="List notes.")
     list_parser.add_argument("--type", "-t", default=None, dest="note_type")
     list_parser.add_argument("--cwd", default=".")
+
+    show_parser = subparsers.add_parser("show", help="Show a note.")
+    show_parser.add_argument("reference")
+    show_parser.add_argument("--cwd", default=".")
+
+    links_parser = subparsers.add_parser("links", help="Show note links.")
+    links_parser.add_argument("reference")
+    links_parser.add_argument("--cwd", default=".")
+
+    search_parser = subparsers.add_parser("search", help="Search notes.")
+    search_parser.add_argument("query")
+    search_parser.add_argument("--cwd", default=".")
 
     return parser
 
@@ -46,6 +61,12 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.command == "list":
         return list_command(note_type=args.note_type, cwd=Path(args.cwd))
+    if args.command == "show":
+        return show_command(reference=args.reference, cwd=Path(args.cwd))
+    if args.command == "links":
+        return links_command(reference=args.reference, cwd=Path(args.cwd))
+    if args.command == "search":
+        return search_command(query=args.query, cwd=Path(args.cwd))
     parser.error(f"Unknown command: {args.command}")
     return 2
 

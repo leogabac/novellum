@@ -20,6 +20,9 @@ The storage model is intentionally LaTeX-friendly:
 - `novellum init`
 - `novellum new`
 - `novellum list`
+- `novellum show`
+- `novellum links`
+- `novellum search`
 
 ## Workspace Layout
 
@@ -80,7 +83,10 @@ The scaffold is in place for:
 - workspace initialization
 - note creation from templates
 - note listing
+- note inspection
+- link and backlink navigation
 - metadata parsing
 - LaTeX-native link extraction
+- first-pass text and metadata search
 
 See [PLAN.md](/home/holo/Documents/projects/novellum/PLAN.md) for the broader roadmap.
