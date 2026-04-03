@@ -201,6 +201,98 @@ def test_edit_command_requires_editor(tmp_path: Path, monkeypatch) -> None:
     assert "$EDITOR" in error_output.getvalue()
 
 
+def test_stitch_command_writes_document_in_requested_order(tmp_path: Path) -> None:
+    """``stitch`` should emit a standalone document using explicit note order."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% aliases: first
+% novellum:end
+
+\\section{Alpha}
+"""
+    beta = """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(
+            [
+                "stitch",
+                "beta",
+                "first",
+                "--title",
+                "Demo Bundle",
+                "--cwd",
+                str(tmp_path),
+            ]
+        )
+
+    stitched_path = tmp_path / "build" / "stitched.tex"
+    stitched_text = stitched_path.read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert "build/stitched.tex" in output.getvalue()
+    assert r"\title{Demo Bundle}" in stitched_text
+    assert stitched_text.index(r"\input{../notes/proof/beta.tex}") < stitched_text.index(
+        r"\input{../notes/concept/alpha.tex}"
+    )
+
+
+def test_stitch_command_honors_custom_output_path(tmp_path: Path) -> None:
+    """``stitch`` should support an explicit output path relative to the workspace."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+
+    custom_output = tmp_path / "build" / "drafts" / "alpha.tex"
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(
+            [
+                "stitch",
+                "alpha",
+                "--output",
+                "build/drafts/alpha.tex",
+                "--cwd",
+                str(tmp_path),
+            ]
+        )
+
+    assert exit_code == 0
+    assert custom_output.exists()
+    assert "build/drafts/alpha.tex" in output.getvalue()
+
+
 def test_show_reports_missing_note_as_cli_error(tmp_path: Path) -> None:
     """Lookup failures should produce CLI-style stderr output."""
 

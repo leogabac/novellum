@@ -19,6 +19,7 @@ from novellum.commands.list_notes import list_command
 from novellum.commands.new_note import new_command
 from novellum.commands.search_notes import search_command
 from novellum.commands.show_note import show_command
+from novellum.commands.stitch_notes import stitch_command
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -71,6 +72,12 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser.add_argument("query")
     search_parser.add_argument("--cwd", default=".")
 
+    stitch_parser = subparsers.add_parser("stitch", help="Generate a stitched LaTeX document from notes.")
+    stitch_parser.add_argument("references", nargs="+")
+    stitch_parser.add_argument("--title", default="Novellum Stitch")
+    stitch_parser.add_argument("--output", default=None)
+    stitch_parser.add_argument("--cwd", default=".")
+
     return parser
 
 
@@ -120,6 +127,14 @@ def main(argv: list[str] | None = None) -> int:
             return broken_command(cwd=Path(args.cwd))
         if args.command == "search":
             return search_command(query=args.query, cwd=Path(args.cwd))
+        if args.command == "stitch":
+            output_path = Path(args.output) if args.output else None
+            return stitch_command(
+                references=args.references,
+                title=args.title,
+                output_path=output_path,
+                cwd=Path(args.cwd),
+            )
         parser.error(f"Unknown command: {args.command}")
     except (FileNotFoundError, LookupError, RuntimeError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
