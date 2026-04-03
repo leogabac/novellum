@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from novellum.index import build_index, find_note
+from novellum.index import find_note, load_index
 from novellum.storage import find_workspace
 
 
@@ -25,7 +25,7 @@ def show_command(reference: str, cwd: Path = Path(".")) -> int:
     """
 
     workspace = find_workspace(cwd)
-    index = build_index(workspace)
+    index = load_index(workspace)
     note = find_note(index, reference)
 
     print(f"ID: {note.metadata.id}")

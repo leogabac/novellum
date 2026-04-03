@@ -8,8 +8,10 @@ resolve references, backlinks, and search queries.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+from pathlib import Path
 
-from novellum.models import Note, Workspace
+from novellum.models import Link, Note, NoteMetadata, Workspace
 from novellum.storage import list_notes
 
 
@@ -27,12 +29,16 @@ class IndexedLink:
         Canonical resolved note ID when the target is uniquely resolvable.
     label : str or None, optional
         Optional display label from the source note.
+    candidate_ids : list[str], optional
+        All candidate note IDs discovered during resolution. This is useful for
+        distinguishing missing targets from ambiguous aliases in diagnostics.
     """
 
     source_id: str
     target: str
     resolved_id: str | None
     label: str | None = None
+    candidate_ids: list[str] | None = None
 
 
 @dataclass(slots=True)
@@ -58,6 +64,37 @@ class NoteIndex:
     outbound: dict[str, list[IndexedLink]]
     backlinks: dict[str, list[IndexedLink]]
     broken_links: dict[str, list[IndexedLink]]
+    note_mtimes: dict[str, int]
+
+
+def load_index(workspace: Workspace) -> NoteIndex:
+    """Load a cached index when valid, otherwise rebuild it.
+
+    Parameters
+    ----------
+    workspace : Workspace
+        Workspace whose note graph should be loaded.
+
+    Returns
+    -------
+    NoteIndex
+        Cached or freshly rebuilt note graph index.
+    """
+
+    cache_path = workspace.config_dir / "index.json"
+    current_mtimes = _scan_note_mtimes(workspace)
+
+    if cache_path.exists():
+        try:
+            cached = _load_cached_index(cache_path, workspace)
+        except (OSError, ValueError, json.JSONDecodeError, KeyError, TypeError):
+            cached = None
+        if cached is not None and cached.note_mtimes == current_mtimes:
+            return cached
+
+    rebuilt = build_index(workspace)
+    _write_cached_index(cache_path, workspace, rebuilt)
+    return rebuilt
 
 
 def build_index(workspace: Workspace) -> NoteIndex:
@@ -75,6 +112,7 @@ def build_index(workspace: Workspace) -> NoteIndex:
     """
 
     notes = list_notes(workspace)
+    note_mtimes = _scan_note_mtimes(workspace)
     notes_by_id = _build_notes_by_id(notes)
     aliases = _build_aliases(notes)
     outbound: dict[str, list[IndexedLink]] = {note.metadata.id: [] for note in notes}
@@ -94,6 +132,7 @@ def build_index(workspace: Workspace) -> NoteIndex:
                 target=link.target,
                 resolved_id=resolved_id,
                 label=link.label,
+                candidate_ids=matches,
             )
             outbound[source_id].append(indexed)
             if resolved_id is None:
@@ -107,6 +146,7 @@ def build_index(workspace: Workspace) -> NoteIndex:
         outbound=outbound,
         backlinks=backlinks,
         broken_links=broken_links,
+        note_mtimes=note_mtimes,
     )
 
 
@@ -253,3 +293,136 @@ def _build_notes_by_id(notes: list[Note]) -> dict[str, Note]:
             )
         notes_by_id[note.metadata.id] = note
     return notes_by_id
+
+
+def _scan_note_mtimes(workspace: Workspace) -> dict[str, int]:
+    """Collect nanosecond mtimes for note files relative to the workspace."""
+
+    mtimes: dict[str, int] = {}
+    for path in sorted(workspace.notes_dir.rglob("*.tex")):
+        mtimes[str(path.relative_to(workspace.root))] = path.stat().st_mtime_ns
+    return mtimes
+
+
+def _write_cached_index(cache_path: Path, workspace: Workspace, index: NoteIndex) -> None:
+    """Persist a JSON representation of the current index."""
+
+    payload = {
+        "note_mtimes": index.note_mtimes,
+        "notes": [_serialize_note(note, workspace) for note in index.notes_by_id.values()],
+        "aliases": index.aliases,
+        "outbound": _serialize_link_map(index.outbound),
+        "backlinks": _serialize_link_map(index.backlinks),
+        "broken_links": _serialize_link_map(index.broken_links),
+    }
+    cache_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _load_cached_index(cache_path: Path, workspace: Workspace) -> NoteIndex:
+    """Read a previously persisted index from disk."""
+
+    payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    notes = [_deserialize_note(note_data, workspace) for note_data in payload["notes"]]
+    return NoteIndex(
+        notes_by_id=_build_notes_by_id(notes),
+        aliases={key: list(value) for key, value in payload["aliases"].items()},
+        outbound=_deserialize_link_map(payload["outbound"]),
+        backlinks=_deserialize_link_map(payload["backlinks"]),
+        broken_links=_deserialize_link_map(payload["broken_links"]),
+        note_mtimes={key: int(value) for key, value in payload["note_mtimes"].items()},
+    )
+
+
+def _serialize_note(note: Note, workspace: Workspace) -> dict[str, object]:
+    """Convert a note into a JSON-friendly structure."""
+
+    return {
+        "path": str(note.path.relative_to(workspace.root)),
+        "metadata": {
+            "id": note.metadata.id,
+            "title": note.metadata.title,
+            "note_type": note.metadata.note_type,
+            "created": note.metadata.created,
+            "updated": note.metadata.updated,
+            "tags": note.metadata.tags,
+            "aliases": note.metadata.aliases,
+        },
+        "body": note.body,
+        "links": [{"target": link.target, "label": link.label} for link in note.links],
+    }
+
+
+def _deserialize_note(payload: dict[str, object], workspace: Workspace) -> Note:
+    """Reconstruct a note from the cached JSON payload."""
+
+    metadata_payload = payload["metadata"]
+    if not isinstance(metadata_payload, dict):
+        raise TypeError("Invalid cached metadata payload.")
+
+    links_payload = payload["links"]
+    if not isinstance(links_payload, list):
+        raise TypeError("Invalid cached links payload.")
+
+    return Note(
+        path=workspace.root / str(payload["path"]),
+        metadata=NoteMetadata(
+            id=str(metadata_payload["id"]),
+            title=str(metadata_payload["title"]),
+            note_type=str(metadata_payload["note_type"]),
+            created=str(metadata_payload["created"]),
+            updated=str(metadata_payload["updated"]),
+            tags=[str(item) for item in metadata_payload["tags"]],
+            aliases=[str(item) for item in metadata_payload["aliases"]],
+        ),
+        body=str(payload["body"]),
+        links=[
+            Link(target=str(link_payload["target"]), label=_coerce_optional_str(link_payload.get("label")))
+            for link_payload in links_payload
+            if isinstance(link_payload, dict)
+        ],
+    )
+
+
+def _serialize_link_map(link_map: dict[str, list[IndexedLink]]) -> dict[str, list[dict[str, object]]]:
+    """Convert indexed-link mappings into JSON-friendly structures."""
+
+    return {
+        key: [
+            {
+                "source_id": link.source_id,
+                "target": link.target,
+                "resolved_id": link.resolved_id,
+                "label": link.label,
+                "candidate_ids": link.candidate_ids or [],
+            }
+            for link in links
+        ]
+        for key, links in link_map.items()
+    }
+
+
+def _deserialize_link_map(payload: dict[str, list[dict[str, object]]]) -> dict[str, list[IndexedLink]]:
+    """Reconstruct indexed-link mappings from cached JSON payload."""
+
+    return {
+        key: [
+            IndexedLink(
+                source_id=str(link_payload["source_id"]),
+                target=str(link_payload["target"]),
+                resolved_id=_coerce_optional_str(link_payload.get("resolved_id")),
+                label=_coerce_optional_str(link_payload.get("label")),
+                candidate_ids=[str(item) for item in link_payload.get("candidate_ids", [])],
+            )
+            for link_payload in links
+            if isinstance(link_payload, dict)
+        ]
+        for key, links in payload.items()
+    }
+
+
+def _coerce_optional_str(value: object) -> str | None:
+    """Normalize cached string fields that may be absent or null."""
+
+    if value is None:
+        return None
+    return str(value)

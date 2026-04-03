@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from novellum.index import build_index, find_note
+from novellum.index import find_note, load_index
 from novellum.storage import find_workspace
 
 
@@ -25,7 +25,7 @@ def links_command(reference: str, cwd: Path = Path(".")) -> int:
     """
 
     workspace = find_workspace(cwd)
-    index = build_index(workspace)
+    index = load_index(workspace)
     note = find_note(index, reference)
 
     print(f"Note: {note.metadata.id}")
@@ -36,7 +36,11 @@ def links_command(reference: str, cwd: Path = Path(".")) -> int:
     else:
         for link in outbound:
             if link.resolved_id is None:
-                print(f"- {link.target} [unresolved]")
+                if link.candidate_ids:
+                    joined = ", ".join(link.candidate_ids)
+                    print(f"- {link.target} [ambiguous: {joined}]")
+                else:
+                    print(f"- {link.target} [missing]")
             else:
                 print(f"- {link.target} -> {link.resolved_id}")
 

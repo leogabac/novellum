@@ -1,8 +1,9 @@
 """CLI-level tests for the current command surface."""
 
-from pathlib import Path
 import io
 from contextlib import redirect_stdout
+from pathlib import Path
+import subprocess
 
 from novellum.cli import main
 
@@ -86,3 +87,115 @@ Mentions Poincare.
     assert "Backlinks:" in links_output.getvalue()
     assert "alpha -> beta" in links_output.getvalue()
     assert "beta" in search_output.getvalue()
+
+
+def test_backlinks_and_broken_commands_work(tmp_path: Path) -> None:
+    """Dedicated diagnostics commands should expose inbound and broken links."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha Note
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+See \\nvlink{beta}, \\nvlink{missing}, and \\nvlink{shared}.
+"""
+    beta = """% novellum:begin
+% id: beta
+% title: Beta Note
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+See \\nvlink[Alpha Ref]{alpha}.
+"""
+    gamma = """% novellum:begin
+% id: gamma
+% title: Gamma Note
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% aliases: shared
+% novellum:end
+
+\\section{Gamma}
+"""
+    delta = """% novellum:begin
+% id: delta
+% title: Delta Note
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% aliases: shared
+% novellum:end
+
+\\section{Delta}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+    (tmp_path / "notes" / "concept" / "gamma.tex").write_text(gamma, encoding="utf-8")
+    (tmp_path / "notes" / "concept" / "delta.tex").write_text(delta, encoding="utf-8")
+
+    backlinks_output = io.StringIO()
+    broken_output = io.StringIO()
+
+    with redirect_stdout(backlinks_output):
+        backlinks_exit_code = main(["backlinks", "alpha", "--cwd", str(tmp_path)])
+    with redirect_stdout(broken_output):
+        broken_exit_code = main(["broken", "--cwd", str(tmp_path)])
+
+    assert backlinks_exit_code == 0
+    assert broken_exit_code == 0
+    assert "beta -> alpha [Alpha Ref]" in backlinks_output.getvalue()
+    assert "- missing [missing]" in broken_output.getvalue()
+    assert "- shared [ambiguous: delta, gamma]" in broken_output.getvalue()
+
+
+def test_edit_command_opens_note_with_editor(tmp_path: Path, monkeypatch) -> None:
+    """``edit`` should resolve a note and invoke the configured editor."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--cwd", str(tmp_path)])
+
+    captured: dict[str, object] = {}
+
+    def fake_run(command: list[str], check: bool, cwd: Path) -> None:
+        captured["command"] = command
+        captured["check"] = check
+        captured["cwd"] = cwd
+
+    monkeypatch.setenv("EDITOR", "vim -f")
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    exit_code = main(["edit", "spectral-gap", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert captured["command"] == ["vim", "-f", str(tmp_path / "notes" / "concept" / "spectral-gap.tex")]
+    assert captured["check"] is True
+    assert captured["cwd"] == tmp_path
+
+
+def test_edit_command_requires_editor(tmp_path: Path, monkeypatch) -> None:
+    """``edit`` should fail clearly when ``$EDITOR`` is missing."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--cwd", str(tmp_path)])
+
+    monkeypatch.delenv("EDITOR", raising=False)
+
+    try:
+        main(["edit", "spectral-gap", "--cwd", str(tmp_path)])
+    except RuntimeError as error:
+        assert "$EDITOR" in str(error)
+    else:
+        raise AssertionError("Expected edit to fail without $EDITOR.")
