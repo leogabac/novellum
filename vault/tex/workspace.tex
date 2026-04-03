@@ -2,8 +2,7 @@
 
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{novellum}
-\usepackage[backend=biber]{biblatex}
-\addbibresource{../bibliography/references.bib}
+\usepackage[numbers]{natbib}
 
 \title{Novellum Workspace}
 \author{}
@@ -18,6 +17,7 @@
 % Example:
 % \input{../notes/concept/spectral-gap.tex}
 
-\printbibliography
+\bibliographystyle{plainnat}
+\bibliography{../bibliography/references}
 
 \end{document}
