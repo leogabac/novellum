@@ -73,7 +73,8 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser.add_argument("--cwd", default=".")
 
     stitch_parser = subparsers.add_parser("stitch", help="Generate a stitched LaTeX document from notes.")
-    stitch_parser.add_argument("references", nargs="+")
+    stitch_parser.add_argument("references", nargs="*")
+    stitch_parser.add_argument("--all", action="store_true", dest="stitch_all")
     stitch_parser.add_argument("--title", default="Novellum Stitch")
     stitch_parser.add_argument("--output", default=None)
     stitch_parser.add_argument("--cwd", default=".")
@@ -131,6 +132,7 @@ def main(argv: list[str] | None = None) -> int:
             output_path = Path(args.output) if args.output else None
             return stitch_command(
                 references=args.references,
+                stitch_all=args.stitch_all,
                 title=args.title,
                 output_path=output_path,
                 cwd=Path(args.cwd),

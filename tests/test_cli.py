@@ -293,6 +293,101 @@ def test_stitch_command_honors_custom_output_path(tmp_path: Path) -> None:
     assert "build/drafts/alpha.tex" in output.getvalue()
 
 
+def test_stitch_command_can_render_whole_workspace(tmp_path: Path) -> None:
+    """``stitch --all`` should include every note in deterministic workspace order."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    beta = """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+"""
+    gamma = """% novellum:begin
+% id: gamma
+% title: Gamma
+% type: experiment
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Gamma}
+"""
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    (tmp_path / "notes" / "experiment" / "gamma.tex").write_text(gamma, encoding="utf-8")
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["stitch", "--all", "--cwd", str(tmp_path)])
+
+    stitched_text = (tmp_path / "build" / "stitched.tex").read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert stitched_text.index(r"\input{../notes/concept/alpha.tex}") < stitched_text.index(
+        r"\input{../notes/experiment/gamma.tex}"
+    )
+    assert stitched_text.index(r"\input{../notes/experiment/gamma.tex}") < stitched_text.index(
+        r"\input{../notes/proof/beta.tex}"
+    )
+
+
+def test_stitch_command_requires_references_or_all(tmp_path: Path) -> None:
+    """``stitch`` should fail clearly when no note selection is provided."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["stitch", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Provide at least one note reference or pass --all." in error_output.getvalue()
+
+
+def test_stitch_command_rejects_references_with_all(tmp_path: Path) -> None:
+    """``stitch`` should reject mixing explicit references with ``--all``."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["stitch", "alpha", "--all", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Use either explicit note references or --all" in error_output.getvalue()
+
+
 def test_show_reports_missing_note_as_cli_error(tmp_path: Path) -> None:
     """Lookup failures should produce CLI-style stderr output."""
 
