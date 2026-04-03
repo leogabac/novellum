@@ -43,8 +43,7 @@ def render_stitched_document(
         "",
         r"\usepackage{amsmath,amssymb,amsthm}",
         rf"\usepackage{{{package_path}}}",
-        r"\usepackage[backend=biber]{biblatex}",
-        rf"\addbibresource{{{bibliography_path}}}",
+        r"\usepackage[numbers]{natbib}",
         "",
         rf"\title{{{title}}}",
         r"\author{}",
@@ -64,7 +63,8 @@ def render_stitched_document(
     lines.extend(
         [
             "",
-            r"\printbibliography",
+            r"\bibliographystyle{plainnat}",
+            rf"\bibliography{{{_strip_bib_extension(bibliography_path)}}}",
             "",
             r"\end{document}",
             "",
@@ -112,3 +112,9 @@ def _relative_from_base(base_dir: Path, target: Path) -> str:
     """Compute a POSIX path from a base directory to a target file."""
 
     return Path(os.path.relpath(target, start=base_dir)).as_posix()
+
+
+def _strip_bib_extension(path: str) -> str:
+    """Render a bibliography path in BibTeX form without the ``.bib`` suffix."""
+
+    return path[:-4] if path.endswith(".bib") else path

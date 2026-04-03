@@ -26,6 +26,8 @@ The storage model is intentionally LaTeX-friendly:
 - `novellum backlinks`
 - `novellum broken`
 - `novellum search`
+- `novellum stitch`
+- `novellum compile`
 
 ## Workspace Layout
 
@@ -74,13 +76,16 @@ This note connects to \nvlink[The Poincare Lemma]{lemma-poincare}.
 
 ## Bibliography
 
-Keep citations standard LaTeX. Notes should use normal commands such as `\cite{key}` and rely on the workspace root document to declare the bibliography.
+Keep citations standard LaTeX. Notes should use normal commands such as `\cite{key}` and rely on the workspace root or stitched output to declare the bibliography.
+
+Novellum now defaults to `natbib` with BibTeX rather than `biblatex` with `biber`. That keeps the default compile path simpler on many machines and avoids an extra backend dependency.
 
 That means:
 
 - VimTeX can see a real TeX root
 - citation completion can read `bibliography/references.bib`
 - Novellum does not need a custom citation syntax
+- the default build flow works with `latexmk` plus BibTeX-style bibliography handling
 
 ## Current Behavior
 
@@ -90,6 +95,8 @@ That means:
 - `backlinks` shows inbound references only
 - `broken` shows missing and ambiguous link targets across the workspace
 - `edit` opens a resolved note with `$EDITOR`
+- `stitch` writes a standalone LaTeX document for selected notes or the whole workspace with `--all`
+- `compile` runs `latexmk` against the workspace root, the default stitched file, or an explicit `.tex` target
 - expected user-facing failures print a concise CLI error instead of a Python traceback
 
 ## Next Steps

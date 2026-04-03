@@ -388,6 +388,94 @@ def test_stitch_command_rejects_references_with_all(tmp_path: Path) -> None:
     assert "Use either explicit note references or --all" in error_output.getvalue()
 
 
+def test_compile_command_uses_workspace_root_by_default(tmp_path: Path, monkeypatch) -> None:
+    """``compile`` should default to the configured workspace root document."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    captured: dict[str, object] = {}
+
+    def fake_run(command: list[str], check: bool, cwd: Path) -> None:
+        captured["command"] = command
+        captured["check"] = check
+        captured["cwd"] = cwd
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/latexmk" if name == "latexmk" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["compile", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert captured["command"] == [
+        "/usr/bin/latexmk",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-output-directory=build",
+        "tex/workspace.tex",
+    ]
+    assert captured["check"] is True
+    assert captured["cwd"] == tmp_path
+    assert "Compiled tex/workspace.tex into build" in output.getvalue()
+
+
+def test_compile_command_can_target_stitched_document(tmp_path: Path, monkeypatch) -> None:
+    """``compile stitched`` should compile the default stitched output."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+    (tmp_path / "build" / "stitched.tex").write_text("\\documentclass{article}\n", encoding="utf-8")
+
+    captured: dict[str, object] = {}
+
+    def fake_run(command: list[str], check: bool, cwd: Path) -> None:
+        captured["command"] = command
+        captured["check"] = check
+        captured["cwd"] = cwd
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/latexmk" if name == "latexmk" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    exit_code = main(["compile", "stitched", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert captured["command"][-1] == "build/stitched.tex"
+
+
+def test_compile_command_reports_missing_latexmk(tmp_path: Path, monkeypatch) -> None:
+    """``compile`` should fail cleanly when ``latexmk`` is unavailable."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    monkeypatch.setattr("shutil.which", lambda name: None)
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["compile", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "latexmk is not installed" in error_output.getvalue()
+
+
+def test_compile_command_reports_missing_target(tmp_path: Path, monkeypatch) -> None:
+    """``compile`` should fail cleanly when the requested source file is missing."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/latexmk" if name == "latexmk" else None)
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["compile", "build/missing.tex", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Compile target does not exist" in error_output.getvalue()
+
+
 def test_show_reports_missing_note_as_cli_error(tmp_path: Path) -> None:
     """Lookup failures should produce CLI-style stderr output."""
 

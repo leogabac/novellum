@@ -12,6 +12,7 @@ import sys
 
 from novellum.commands.backlinks import backlinks_command
 from novellum.commands.broken_links import broken_command
+from novellum.commands.compile_document import compile_command
 from novellum.commands.edit_note import edit_command
 from novellum.commands.init import init_command
 from novellum.commands.links import links_command
@@ -79,6 +80,10 @@ def build_parser() -> argparse.ArgumentParser:
     stitch_parser.add_argument("--output", default=None)
     stitch_parser.add_argument("--cwd", default=".")
 
+    compile_parser = subparsers.add_parser("compile", help="Compile a workspace or stitched LaTeX target.")
+    compile_parser.add_argument("target", nargs="?", default="workspace")
+    compile_parser.add_argument("--cwd", default=".")
+
     return parser
 
 
@@ -137,6 +142,8 @@ def main(argv: list[str] | None = None) -> int:
                 output_path=output_path,
                 cwd=Path(args.cwd),
             )
+        if args.command == "compile":
+            return compile_command(target=args.target, cwd=Path(args.cwd))
         parser.error(f"Unknown command: {args.command}")
     except (FileNotFoundError, LookupError, RuntimeError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)

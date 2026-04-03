@@ -27,6 +27,8 @@ def test_render_stitched_document_uses_build_relative_paths(tmp_path: Path) -> N
     rendered = render_stitched_document(workspace, [alpha], title="Bundle")
 
     assert r"\usepackage{../tex/novellum}" in rendered
-    assert r"\addbibresource{../bibliography/references.bib}" in rendered
+    assert r"\usepackage[numbers]{natbib}" in rendered
     assert r"\title{Bundle}" in rendered
     assert r"\input{../notes/concept/alpha.tex}" in rendered
+    assert r"\bibliographystyle{plainnat}" in rendered
+    assert r"\bibliography{../bibliography/references}" in rendered
