@@ -17,10 +17,12 @@ from novellum.commands.edit_note import edit_command
 from novellum.commands.init import init_command
 from novellum.commands.links import links_command
 from novellum.commands.list_notes import list_command
+from novellum.commands.log_new import log_new_command
 from novellum.commands.new_note import new_command
 from novellum.commands.search_notes import search_command
 from novellum.commands.show_note import show_command
 from novellum.commands.stitch_notes import stitch_command
+from novellum.commands.today import today_command
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -84,6 +86,16 @@ def build_parser() -> argparse.ArgumentParser:
     compile_parser.add_argument("target", nargs="?", default="workspace")
     compile_parser.add_argument("--cwd", default=".")
 
+    log_parser = subparsers.add_parser("log", help="Create and manage research log notes.")
+    log_subparsers = log_parser.add_subparsers(dest="log_command", required=True)
+    log_new_parser = log_subparsers.add_parser("new", help="Create a dated research log note.")
+    log_new_parser.add_argument("title", nargs="?")
+    log_new_parser.add_argument("--date", dest="log_date", default=None)
+    log_new_parser.add_argument("--cwd", default=".")
+
+    today_parser = subparsers.add_parser("today", help="Open or create today's research log note.")
+    today_parser.add_argument("--cwd", default=".")
+
     return parser
 
 
@@ -144,6 +156,11 @@ def main(argv: list[str] | None = None) -> int:
             )
         if args.command == "compile":
             return compile_command(target=args.target, cwd=Path(args.cwd))
+        if args.command == "log":
+            if args.log_command == "new":
+                return log_new_command(title=args.title, log_date=args.log_date, cwd=Path(args.cwd))
+        if args.command == "today":
+            return today_command(cwd=Path(args.cwd))
         parser.error(f"Unknown command: {args.command}")
     except (FileNotFoundError, LookupError, RuntimeError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)

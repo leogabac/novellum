@@ -201,6 +201,119 @@ def test_edit_command_requires_editor(tmp_path: Path, monkeypatch) -> None:
     assert "$EDITOR" in error_output.getvalue()
 
 
+def test_log_new_creates_dated_log_note(tmp_path: Path) -> None:
+    """``log new`` should create a log note with a stable date-based ID."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["log", "new", "--date", "2026-04-03", "--cwd", str(tmp_path)])
+
+    note_path = tmp_path / "notes" / "log" / "log-2026-04-03.tex"
+    note_text = note_path.read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert note_path.exists()
+    assert "Created log note notes/log/log-2026-04-03.tex" in output.getvalue()
+    assert "% id: log-2026-04-03" in note_text
+    assert "% type: log" in note_text
+    assert "% tags: log, 2026-04-03" in note_text
+    assert "\\section*{Research Log: 2026-04-03}" in note_text
+
+
+def test_log_new_reports_existing_log_note(tmp_path: Path) -> None:
+    """``log new`` should be idempotent for an existing date-based log note."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["log", "new", "--date", "2026-04-03", "--cwd", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["log", "new", "--date", "2026-04-03", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert "Log note already exists" in output.getvalue()
+
+
+def test_today_creates_and_opens_todays_log_note(tmp_path: Path, monkeypatch) -> None:
+    """``today`` should create today's log note when missing and open it."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    captured: dict[str, object] = {}
+
+    def fake_run(command: list[str], check: bool, cwd: Path) -> None:
+        captured["command"] = command
+        captured["check"] = check
+        captured["cwd"] = cwd
+
+    monkeypatch.setenv("EDITOR", "vim -f")
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["today", "--cwd", str(tmp_path)])
+
+    from datetime import date
+
+    today_value = date.today().isoformat()
+    note_path = tmp_path / "notes" / "log" / f"log-{today_value}.tex"
+    assert exit_code == 0
+    assert note_path.exists()
+    assert f"Created log note notes/log/log-{today_value}.tex" in output.getvalue()
+    assert captured["command"] == ["vim", "-f", str(note_path)]
+    assert captured["check"] is True
+    assert captured["cwd"] == tmp_path
+
+
+def test_today_opens_existing_log_note_without_recreating(tmp_path: Path, monkeypatch) -> None:
+    """``today`` should open the current day's note if it already exists."""
+
+    from datetime import date
+
+    today_value = date.today().isoformat()
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["log", "new", "--date", today_value, "--cwd", str(tmp_path)])
+
+    captured: dict[str, object] = {}
+
+    def fake_run(command: list[str], check: bool, cwd: Path) -> None:
+        captured["command"] = command
+        captured["check"] = check
+        captured["cwd"] = cwd
+
+    monkeypatch.setenv("EDITOR", "vim -f")
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["today", "--cwd", str(tmp_path)])
+
+    note_path = tmp_path / "notes" / "log" / f"log-{today_value}.tex"
+    assert exit_code == 0
+    assert "Created log note" not in output.getvalue()
+    assert captured["command"] == ["vim", "-f", str(note_path)]
+
+
+def test_log_new_requires_valid_iso_date(tmp_path: Path) -> None:
+    """``log new`` should reject invalid date strings with a CLI error."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["log", "new", "--date", "04-03-2026", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Log date must use YYYY-MM-DD format." in error_output.getvalue()
+
+
 def test_stitch_command_writes_document_in_requested_order(tmp_path: Path) -> None:
     """``stitch`` should emit a standalone document using explicit note order."""
 
