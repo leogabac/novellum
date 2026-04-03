@@ -1,35 +1,120 @@
 # novellum
 
-CLI-first linked LaTeX notes for research logbooks.
+![Static Badge](https://img.shields.io/badge/repo-novellum-blue?logo=github) ![Static Badge](https://img.shields.io/badge/status-dev-red?logo=github)
 
-## Direction
+A CLI linked LaTeX note system for research logbooks.
 
-Novellum stays a CLI. The editor and richer UI layer can come later through a Neovim plugin and related integrations.
+> [!NOTE]
+> This project is still early in development. The current workflow is already usable, but there is still a lot of room to improve and polish.
+> If you have ideas, open an _issue_.
 
-The storage model is intentionally LaTeX-friendly:
+`novellum` is for people who want Obsidian-style linking and graph navigation, but do not want to leave normal LaTeX files behind.
 
-- notes are `.tex` files
-- metadata lives in a leading LaTeX comment block
-- links use a LaTeX-native macro: `\nvlink{note-id}` or `\nvlink[Label]{note-id}`
-- each workspace is initialized with a local `.novellum/` directory
-- each workspace also gets a normal LaTeX root in `tex/workspace.tex`
-- the default bibliography lives at `bibliography/references.bib`
+Notes are just `.tex` fragments. Metadata lives in a LaTeX comment block. Links use `\nvlink{...}`. Bibliography stays in a shared `references.bib`. The workspace has a normal `tex/workspace.tex` root so editor tooling like VimTeX can still behave like it is inside a regular LaTeX project.
 
-## Current Commands
+This project exists because I wanted a local-first research notebook that felt more like a pile of theorem scraps, proof fragments, reading notes, and lab notebook entries than a polished notes app.
 
-- `novellum init`
-- `novellum new`
-- `novellum list`
-- `novellum show`
-- `novellum edit`
-- `novellum links`
-- `novellum backlinks`
-- `novellum broken`
-- `novellum search`
-- `novellum stitch`
-- `novellum compile`
+**Why choose `novellum`?**
+
+You do not have to. I am building this because I am way too opinionated and pedantic on my notes, and it scratches a very specific itch in how I work.
+
+If what you want is:
+
+* plain-text source of truth
+* close to LaTeX-native notes
+* links, backlinks, broken-link diagnostics
+* stitched draft documents
+* a CLI workflow that can later integrate with Neovim cleanly
+
+then `novellum` might actually be useful to you.
+
+> [!NOTE]
+> The name _novellum_.
+> I am obsessed with VTubers, and I put references everythwere I can. It is a mashup of [Shiori Novella](https://www.youtube.com/@ShioriNovella) and a __vellum__.
+
+## Features
+
+* Linked LaTeX notes with metadata stored in comment blocks
+* Canonical IDs plus alias-based note resolution
+* Search across IDs, titles, tags, aliases, and body text
+* Backlinks and broken-link diagnostics
+* Research log workflow with dated `log` notes and a `today` command
+* Stitched LaTeX output for selected notes or the whole workspace
+* Clickable internal note links inside stitched compiled documents
+* Workspace root configured for `natbib` and BibTeX instead of `biblatex`/`biber`
+
+## Installation
+
+For now, install it with `pip` from the project root:
+
+```sh
+pip install .
+```
+
+If you are developing locally, the editable install is more convenient:
+
+```sh
+pip install -e .
+```
+
+You will probably also want:
+
+1. a LaTeX toolchain with `latexmk`
+2. BibTeX
+3. an editor configured through `$EDITOR`
+
+## Quickstart
+
+Create a workspace:
+
+```sh
+novellum init my-notes
+cd my-notes
+```
+
+Create a few notes:
+
+```sh
+novellum new "Spectral Gap" --type concept --alias sg
+novellum new "Poincare Lemma" --type proof --id lemma-poincare
+novellum log new
+```
+> [!NOTE]
+> Most of the flags are optional, and you can modify them in the actual `.tex`. Checkout the help for more assistance.
+
+Open or create today's log note:
+
+```sh
+EDITOR="nvim" novellum today
+```
+
+Inspect and navigate:
+
+```sh
+novellum list
+novellum show spectral-gap
+novellum backlinks spectral-gap
+novellum broken
+novellum search poincare
+```
+
+Produce a stitched document and compile it:
+
+```sh
+novellum stitch spectral-gap lemma-poincare --title "Draft Notes"
+novellum compile stitched
+```
+
+Or stitch the whole workspace:
+
+```sh
+novellum stitch --all --title "Whole Notebook"
+novellum compile stitched
+```
 
 ## Workspace Layout
+
+`novellum init` creates a workspace like this:
 
 ```text
 .novellum/
@@ -52,67 +137,149 @@ tex/
 build/
 ```
 
-`tex/workspace.tex` is the VimTeX-friendly root document. Notes remain fragments under `notes/`, while citations stay in the shared `bibliography/references.bib`.
+Some notes:
 
-`.novellum/index.json` is a generated cache. Note files remain the source of truth, and the cache can be rebuilt automatically whenever note mtimes change.
+* note files under `notes/` are the source of truth
+* `.novellum/index.json` is a generated cache and can be rebuilt
+* `tex/workspace.tex` is a normal LaTeX root for editor integration
+* `bibliography/references.bib` is the shared bibliography file
+* `build/` stores stitched output and compile artifacts
 
 ## Note Format
+
+Here is what a note looks like:
 
 ```tex
 % novellum:begin
 % id: spectral-gap
 % title: Spectral Gap
 % type: concept
-% created: 2026-04-02T00:00:00Z
-% updated: 2026-04-02T00:00:00Z
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
 % tags: analysis, operator-theory
 % aliases: sg
 % novellum:end
 
 \section{Spectral Gap}
 
-This note connects to \nvlink[The Poincare Lemma]{lemma-poincare}.
+This connects to \nvlink[The Poincare Lemma]{lemma-poincare}.
+We can still cite things normally with \cite{engel_nagel_2000}.
 ```
+
+Important details:
+
+* IDs resolve before aliases
+* ambiguous aliases are treated as errors for direct lookup
+* ambiguous aliases are reported as broken links in diagnostics
+* only `\nvlink` is used for internal note graph edges
 
 ## Bibliography
 
-Keep citations standard LaTeX. Notes should use normal commands such as `\cite{key}` and rely on the workspace root or stitched output to declare the bibliography.
+`novellum` keeps citations standard. Use normal LaTeX citation commands like `\cite{key}` in note bodies.
 
-Novellum now defaults to `natbib` with BibTeX rather than `biblatex` with `biber`. That keeps the default compile path simpler on many machines and avoids an extra backend dependency.
+The default workspace uses `natbib` with BibTeX rather than `biblatex` with `biber`. That choice is mostly pragmatic: it is simpler to get working on a lot of machines and makes the default compile workflow less annoying.
 
 That means:
 
-- VimTeX can see a real TeX root
-- citation completion can read `bibliography/references.bib`
-- Novellum does not need a custom citation syntax
-- the default build flow works with `latexmk` plus BibTeX-style bibliography handling
+* VimTeX can still see a real TeX root
+* citation completion can still use `bibliography/references.bib`
+* notes stay readable as plain LaTeX fragments
+* compilation works with `latexmk` plus a standard BibTeX recipe
 
-## Current Behavior
+## Usage
 
-- note references resolve by canonical ID first, then alias
-- ambiguous aliases are treated as errors for direct lookup and as broken links in graph diagnostics
-- `links` shows outbound links, backlinks, and unresolved targets for one note
-- `backlinks` shows inbound references only
-- `broken` shows missing and ambiguous link targets across the workspace
-- `edit` opens a resolved note with `$EDITOR`
-- `stitch` writes a standalone LaTeX document for selected notes or the whole workspace with `--all`
-- `compile` runs `latexmk` against the workspace root, the default stitched file, or an explicit `.tex` target
-- expected user-facing failures print a concise CLI error instead of a Python traceback
+There are a few main workflows.
 
-## Next Steps
+### Basic note workflow
 
-The scaffold is in place for:
+Create notes:
 
-- workspace initialization
-- note creation from templates
-- note listing
-- note inspection
-- note editing through `$EDITOR`
-- link and backlink navigation
-- broken-link diagnostics
-- metadata parsing
-- LaTeX-native link extraction
-- first-pass text and metadata search
-- persistent cached indexing
+```sh
+novellum new "Heat Kernel Experiment" --type experiment --alias hk
+novellum new "Operator Semigroup" --type concept
+```
 
-See [PLAN.md](/home/holo/Documents/projects/novellum/PLAN.md) for the broader roadmap.
+Inspect them:
+
+```sh
+novellum list
+novellum show hk
+novellum edit operator-semigroup
+```
+
+### Graph workflow
+
+Find outgoing links, backlinks, and diagnostics:
+
+```sh
+novellum links spectral-gap
+novellum backlinks lemma-poincare
+novellum broken
+```
+
+### Logbook workflow
+
+Create an explicit dated log:
+
+```sh
+novellum log new --date 2026-04-03
+```
+
+Or just open today's:
+
+```sh
+EDITOR="nvim" novellum today
+```
+
+### Document workflow
+
+Stitch specific notes:
+
+```sh
+novellum stitch spectral-gap lemma-poincare --title "Analysis Draft"
+```
+
+Stitch everything:
+
+```sh
+novellum stitch --all --title "Notebook Draft"
+```
+
+Compile either the workspace root or the stitched output:
+
+```sh
+novellum compile
+novellum compile stitched
+novellum compile build/drafts/custom.tex
+```
+
+## Current Commands
+
+* `novellum init`
+* `novellum new`
+* `novellum list`
+* `novellum show`
+* `novellum edit`
+* `novellum links`
+* `novellum backlinks`
+* `novellum broken`
+* `novellum search`
+* `novellum stitch`
+* `novellum compile`
+* `novellum log new`
+* `novellum today`
+
+## Current State
+
+Right now the project can already do the following:
+
+* initialize a workspace
+* create typed notes from templates
+* create and open dated log notes
+* index note links and backlinks
+* search note metadata and body text
+* generate stitched `.tex` output
+* compile the workspace root or stitched files with `latexmk`
+* rewrite stitched internal note links into clickable PDF hyperlinks
+
+The next obvious work is mostly polish and figure out how to make a neovim integration.
