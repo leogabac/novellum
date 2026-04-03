@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from novellum.index import build_index, search_notes
+from novellum.index import load_index, search_notes
 from novellum.storage import find_workspace
 
 
@@ -25,7 +25,7 @@ def search_command(query: str, cwd: Path = Path(".")) -> int:
     """
 
     workspace = find_workspace(cwd)
-    index = build_index(workspace)
+    index = load_index(workspace)
     matches = search_notes(index, query)
 
     if not matches:

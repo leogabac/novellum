@@ -1,8 +1,9 @@
 """Tests for note graph indexing and resolution."""
 
+import json
 from pathlib import Path
 
-from novellum.index import build_index, find_note, search_notes
+from novellum.index import build_index, find_note, load_index, search_notes
 from novellum.storage import init_workspace
 
 
@@ -164,3 +165,52 @@ def test_build_index_rejects_duplicate_note_ids(tmp_path: Path) -> None:
         assert "Duplicate note ID" in str(error)
     else:
         raise AssertionError("Expected duplicate IDs to make index building fail.")
+
+
+def test_load_index_writes_cache_and_rebuilds_after_note_change(tmp_path: Path) -> None:
+    """Cache-backed loading should persist and refresh when note mtimes change."""
+
+    workspace = init_workspace(tmp_path)
+    note_path = tmp_path / "notes" / "concept" / "alpha.tex"
+    write_note(
+        note_path,
+        """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+Before.
+""",
+    )
+
+    first = load_index(workspace)
+    cache_path = tmp_path / ".novellum" / "index.json"
+
+    assert cache_path.exists()
+    assert first.notes_by_id["alpha"].body.endswith("Before.")
+
+    write_note(
+        note_path,
+        """% novellum:begin
+% id: alpha
+% title: Alpha Revised
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:01Z
+% novellum:end
+
+\\section{Alpha}
+After.
+""",
+    )
+
+    second = load_index(workspace)
+    cached_payload = json.loads(cache_path.read_text(encoding="utf-8"))
+
+    assert second.notes_by_id["alpha"].metadata.title == "Alpha Revised"
+    assert second.notes_by_id["alpha"].body.endswith("After.")
+    assert cached_payload["notes"][0]["metadata"]["title"] == "Alpha Revised"
