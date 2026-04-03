@@ -1,7 +1,7 @@
 """CLI-level tests for the current command surface."""
 
 import io
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 import subprocess
 
@@ -193,9 +193,99 @@ def test_edit_command_requires_editor(tmp_path: Path, monkeypatch) -> None:
 
     monkeypatch.delenv("EDITOR", raising=False)
 
-    try:
-        main(["edit", "spectral-gap", "--cwd", str(tmp_path)])
-    except RuntimeError as error:
-        assert "$EDITOR" in str(error)
-    else:
-        raise AssertionError("Expected edit to fail without $EDITOR.")
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["edit", "spectral-gap", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "$EDITOR" in error_output.getvalue()
+
+
+def test_show_reports_missing_note_as_cli_error(tmp_path: Path) -> None:
+    """Lookup failures should produce CLI-style stderr output."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["show", "does-not-exist", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "No note found" in error_output.getvalue()
+
+
+def test_show_reports_ambiguous_alias_as_cli_error(tmp_path: Path) -> None:
+    """Ambiguous aliases should be reported as user-facing CLI errors."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% aliases: shared
+% novellum:end
+
+\\section{Alpha}
+"""
+    beta = """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% aliases: shared
+% novellum:end
+
+\\section{Beta}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["show", "shared", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "ambiguous" in error_output.getvalue()
+
+
+def test_show_reports_duplicate_ids_as_cli_error(tmp_path: Path) -> None:
+    """Duplicate IDs should surface as a CLI error on index-backed commands."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    duplicate_one = """% novellum:begin
+% id: duplicate
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    duplicate_two = """% novellum:begin
+% id: duplicate
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(duplicate_one, encoding="utf-8")
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(duplicate_two, encoding="utf-8")
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["show", "duplicate", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Duplicate note ID" in error_output.getvalue()

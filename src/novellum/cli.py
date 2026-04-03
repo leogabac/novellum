@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 
 from novellum.commands.backlinks import backlinks_command
 from novellum.commands.broken_links import broken_command
@@ -89,36 +90,40 @@ def main(argv: list[str] | None = None) -> int:
     """
 
     parser = build_parser()
-    args = parser.parse_args(argv)
+    try:
+        args = parser.parse_args(argv)
 
-    # Dispatch stays explicit instead of dynamic so command wiring is easy to
-    # read while the CLI surface remains small.
-    if args.command == "init":
-        return init_command(Path(args.path))
-    if args.command == "new":
-        return new_command(
-            title=args.title,
-            note_type=args.note_type,
-            note_id=args.note_id,
-            tags=args.tags,
-            alias=args.alias,
-            cwd=Path(args.cwd),
-        )
-    if args.command == "list":
-        return list_command(note_type=args.note_type, cwd=Path(args.cwd))
-    if args.command == "show":
-        return show_command(reference=args.reference, cwd=Path(args.cwd))
-    if args.command == "edit":
-        return edit_command(reference=args.reference, cwd=Path(args.cwd))
-    if args.command == "links":
-        return links_command(reference=args.reference, cwd=Path(args.cwd))
-    if args.command == "backlinks":
-        return backlinks_command(reference=args.reference, cwd=Path(args.cwd))
-    if args.command == "broken":
-        return broken_command(cwd=Path(args.cwd))
-    if args.command == "search":
-        return search_command(query=args.query, cwd=Path(args.cwd))
-    parser.error(f"Unknown command: {args.command}")
+        # Dispatch stays explicit instead of dynamic so command wiring is easy
+        # to read while the CLI surface remains small.
+        if args.command == "init":
+            return init_command(Path(args.path))
+        if args.command == "new":
+            return new_command(
+                title=args.title,
+                note_type=args.note_type,
+                note_id=args.note_id,
+                tags=args.tags,
+                alias=args.alias,
+                cwd=Path(args.cwd),
+            )
+        if args.command == "list":
+            return list_command(note_type=args.note_type, cwd=Path(args.cwd))
+        if args.command == "show":
+            return show_command(reference=args.reference, cwd=Path(args.cwd))
+        if args.command == "edit":
+            return edit_command(reference=args.reference, cwd=Path(args.cwd))
+        if args.command == "links":
+            return links_command(reference=args.reference, cwd=Path(args.cwd))
+        if args.command == "backlinks":
+            return backlinks_command(reference=args.reference, cwd=Path(args.cwd))
+        if args.command == "broken":
+            return broken_command(cwd=Path(args.cwd))
+        if args.command == "search":
+            return search_command(query=args.query, cwd=Path(args.cwd))
+        parser.error(f"Unknown command: {args.command}")
+    except (FileNotFoundError, LookupError, RuntimeError, ValueError) as error:
+        print(f"Error: {error}", file=sys.stderr)
+        return 1
     return 2
 
 

@@ -214,3 +214,7 @@ After.
     assert second.notes_by_id["alpha"].metadata.title == "Alpha Revised"
     assert second.notes_by_id["alpha"].body.endswith("After.")
     assert cached_payload["notes"][0]["metadata"]["title"] == "Alpha Revised"
+    assert "aliases" not in cached_payload
+    assert "outbound" not in cached_payload
+    assert "backlinks" not in cached_payload
+    assert "broken_links" not in cached_payload

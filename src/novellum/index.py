@@ -113,41 +113,7 @@ def build_index(workspace: Workspace) -> NoteIndex:
 
     notes = list_notes(workspace)
     note_mtimes = _scan_note_mtimes(workspace)
-    notes_by_id = _build_notes_by_id(notes)
-    aliases = _build_aliases(notes)
-    outbound: dict[str, list[IndexedLink]] = {note.metadata.id: [] for note in notes}
-    backlinks: dict[str, list[IndexedLink]] = {note.metadata.id: [] for note in notes}
-    broken_links: dict[str, list[IndexedLink]] = {note.metadata.id: [] for note in notes}
-
-    for note in notes:
-        source_id = note.metadata.id
-        for link in note.links:
-            matches = resolve_reference(link.target, notes_by_id, aliases)
-            # Only exact or uniquely aliased matches resolve. Ambiguous aliases
-            # are intentionally treated the same as broken links so the CLI does
-            # not silently guess the wrong target.
-            resolved_id = matches[0] if len(matches) == 1 else None
-            indexed = IndexedLink(
-                source_id=source_id,
-                target=link.target,
-                resolved_id=resolved_id,
-                label=link.label,
-                candidate_ids=matches,
-            )
-            outbound[source_id].append(indexed)
-            if resolved_id is None:
-                broken_links[source_id].append(indexed)
-            else:
-                backlinks[resolved_id].append(indexed)
-
-    return NoteIndex(
-        notes_by_id=notes_by_id,
-        aliases=aliases,
-        outbound=outbound,
-        backlinks=backlinks,
-        broken_links=broken_links,
-        note_mtimes=note_mtimes,
-    )
+    return _build_index_from_notes(notes, note_mtimes)
 
 
 def find_note(index: NoteIndex, reference: str) -> Note:
@@ -310,10 +276,6 @@ def _write_cached_index(cache_path: Path, workspace: Workspace, index: NoteIndex
     payload = {
         "note_mtimes": index.note_mtimes,
         "notes": [_serialize_note(note, workspace) for note in index.notes_by_id.values()],
-        "aliases": index.aliases,
-        "outbound": _serialize_link_map(index.outbound),
-        "backlinks": _serialize_link_map(index.backlinks),
-        "broken_links": _serialize_link_map(index.broken_links),
     }
     cache_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
@@ -323,14 +285,8 @@ def _load_cached_index(cache_path: Path, workspace: Workspace) -> NoteIndex:
 
     payload = json.loads(cache_path.read_text(encoding="utf-8"))
     notes = [_deserialize_note(note_data, workspace) for note_data in payload["notes"]]
-    return NoteIndex(
-        notes_by_id=_build_notes_by_id(notes),
-        aliases={key: list(value) for key, value in payload["aliases"].items()},
-        outbound=_deserialize_link_map(payload["outbound"]),
-        backlinks=_deserialize_link_map(payload["backlinks"]),
-        broken_links=_deserialize_link_map(payload["broken_links"]),
-        note_mtimes={key: int(value) for key, value in payload["note_mtimes"].items()},
-    )
+    note_mtimes = {key: int(value) for key, value in payload["note_mtimes"].items()}
+    return _build_index_from_notes(notes, note_mtimes)
 
 
 def _serialize_note(note: Note, workspace: Workspace) -> dict[str, object]:
@@ -383,46 +339,46 @@ def _deserialize_note(payload: dict[str, object], workspace: Workspace) -> Note:
     )
 
 
-def _serialize_link_map(link_map: dict[str, list[IndexedLink]]) -> dict[str, list[dict[str, object]]]:
-    """Convert indexed-link mappings into JSON-friendly structures."""
-
-    return {
-        key: [
-            {
-                "source_id": link.source_id,
-                "target": link.target,
-                "resolved_id": link.resolved_id,
-                "label": link.label,
-                "candidate_ids": link.candidate_ids or [],
-            }
-            for link in links
-        ]
-        for key, links in link_map.items()
-    }
-
-
-def _deserialize_link_map(payload: dict[str, list[dict[str, object]]]) -> dict[str, list[IndexedLink]]:
-    """Reconstruct indexed-link mappings from cached JSON payload."""
-
-    return {
-        key: [
-            IndexedLink(
-                source_id=str(link_payload["source_id"]),
-                target=str(link_payload["target"]),
-                resolved_id=_coerce_optional_str(link_payload.get("resolved_id")),
-                label=_coerce_optional_str(link_payload.get("label")),
-                candidate_ids=[str(item) for item in link_payload.get("candidate_ids", [])],
-            )
-            for link_payload in links
-            if isinstance(link_payload, dict)
-        ]
-        for key, links in payload.items()
-    }
-
-
 def _coerce_optional_str(value: object) -> str | None:
     """Normalize cached string fields that may be absent or null."""
 
     if value is None:
         return None
     return str(value)
+
+
+def _build_index_from_notes(notes: list[Note], note_mtimes: dict[str, int]) -> NoteIndex:
+    """Construct the full derived index from already loaded notes."""
+
+    notes_by_id = _build_notes_by_id(notes)
+    aliases = _build_aliases(notes)
+    outbound: dict[str, list[IndexedLink]] = {note.metadata.id: [] for note in notes}
+    backlinks: dict[str, list[IndexedLink]] = {note.metadata.id: [] for note in notes}
+    broken_links: dict[str, list[IndexedLink]] = {note.metadata.id: [] for note in notes}
+
+    for note in notes:
+        source_id = note.metadata.id
+        for link in note.links:
+            matches = resolve_reference(link.target, notes_by_id, aliases)
+            resolved_id = matches[0] if len(matches) == 1 else None
+            indexed = IndexedLink(
+                source_id=source_id,
+                target=link.target,
+                resolved_id=resolved_id,
+                label=link.label,
+                candidate_ids=matches,
+            )
+            outbound[source_id].append(indexed)
+            if resolved_id is None:
+                broken_links[source_id].append(indexed)
+            else:
+                backlinks[resolved_id].append(indexed)
+
+    return NoteIndex(
+        notes_by_id=notes_by_id,
+        aliases=aliases,
+        outbound=outbound,
+        backlinks=backlinks,
+        broken_links=broken_links,
+        note_mtimes=note_mtimes,
+    )

@@ -1,0 +1,280 @@
+{
+  "aliases": {
+    "gap-note": [
+      "spectral-gap"
+    ],
+    "hk": [
+      "heat-kernel"
+    ],
+    "poincare-lemma": [
+      "lemma-poincare"
+    ],
+    "sg": [
+      "spectral-gap"
+    ],
+    "shared-semigroup": [
+      "operator-semigroup",
+      "engel-nagel"
+    ]
+  },
+  "backlinks": {
+    "engel-nagel": [],
+    "heat-kernel": [
+      {
+        "candidate_ids": [
+          "heat-kernel"
+        ],
+        "label": null,
+        "resolved_id": "heat-kernel",
+        "source_id": "lemma-poincare",
+        "target": "hk"
+      }
+    ],
+    "lemma-poincare": [
+      {
+        "candidate_ids": [
+          "lemma-poincare"
+        ],
+        "label": "The Poincare Lemma",
+        "resolved_id": "lemma-poincare",
+        "source_id": "spectral-gap",
+        "target": "lemma-poincare"
+      }
+    ],
+    "operator-semigroup": [],
+    "spectral-gap": [
+      {
+        "candidate_ids": [
+          "spectral-gap"
+        ],
+        "label": null,
+        "resolved_id": "spectral-gap",
+        "source_id": "heat-kernel",
+        "target": "spectral-gap"
+      }
+    ],
+    "test-note": []
+  },
+  "broken_links": {
+    "engel-nagel": [],
+    "heat-kernel": [],
+    "lemma-poincare": [
+      {
+        "candidate_ids": [],
+        "label": null,
+        "resolved_id": null,
+        "source_id": "lemma-poincare",
+        "target": "missing-theorem"
+      }
+    ],
+    "operator-semigroup": [],
+    "spectral-gap": [
+      {
+        "candidate_ids": [
+          "engel-nagel",
+          "operator-semigroup"
+        ],
+        "label": null,
+        "resolved_id": null,
+        "source_id": "spectral-gap",
+        "target": "shared-semigroup"
+      }
+    ],
+    "test-note": []
+  },
+  "note_mtimes": {
+    "notes/concept/operator-semigroup.tex": 1775201094163649078,
+    "notes/concept/spectral-gap.tex": 1775201094162589887,
+    "notes/concept/test-note.tex": 1775146108353132938,
+    "notes/experiment/heat-kernel.tex": 1775201094162589887,
+    "notes/proof/lemma-poincare.tex": 1775201094162589887,
+    "notes/ref/engel-nagel.tex": 1775201094163649078
+  },
+  "notes": [
+    {
+      "body": "\\section{Operator Semigroup}\n\nThis note exists mainly so alias-based lookup can be tested.",
+      "links": [],
+      "metadata": {
+        "aliases": [
+          "shared-semigroup"
+        ],
+        "created": "2026-04-03T00:00:00Z",
+        "id": "operator-semigroup",
+        "note_type": "concept",
+        "tags": [
+          "semigroups"
+        ],
+        "title": "Operator Semigroup",
+        "updated": "2026-04-03T00:00:00Z"
+      },
+      "path": "notes/concept/operator-semigroup.tex"
+    },
+    {
+      "body": "\\section{Spectral Gap}\n\nThis note links to \\nvlink[The Poincare Lemma]{lemma-poincare} and also\nintentionally references \\nvlink{shared-semigroup} to exercise ambiguous alias\nresolution in diagnostics.",
+      "links": [
+        {
+          "label": "The Poincare Lemma",
+          "target": "lemma-poincare"
+        },
+        {
+          "label": null,
+          "target": "shared-semigroup"
+        }
+      ],
+      "metadata": {
+        "aliases": [
+          "sg",
+          "gap-note"
+        ],
+        "created": "2026-04-03T00:00:00Z",
+        "id": "spectral-gap",
+        "note_type": "concept",
+        "tags": [
+          "analysis",
+          "operator-theory"
+        ],
+        "title": "Spectral Gap",
+        "updated": "2026-04-03T00:00:00Z"
+      },
+      "path": "notes/concept/spectral-gap.tex"
+    },
+    {
+      "body": "\\section{test-note}\n\n% Use \\nvlink{target-id} for unlabeled links.\n% Use \\nvlink[Displayed Label]{target-id} for labeled links.",
+      "links": [],
+      "metadata": {
+        "aliases": [],
+        "created": "2026-04-02T16:08:28Z",
+        "id": "test-note",
+        "note_type": "concept",
+        "tags": [],
+        "title": "test-note",
+        "updated": "2026-04-02T16:08:28Z"
+      },
+      "path": "notes/concept/test-note.tex"
+    },
+    {
+      "body": "\\section{Heat Kernel Experiment}\n\nNumerical experiments here point back to \\nvlink{spectral-gap} so backlinks are\neasy to inspect.",
+      "links": [
+        {
+          "label": null,
+          "target": "spectral-gap"
+        }
+      ],
+      "metadata": {
+        "aliases": [
+          "hk"
+        ],
+        "created": "2026-04-03T00:00:00Z",
+        "id": "heat-kernel",
+        "note_type": "experiment",
+        "tags": [
+          "numerics",
+          "diffusion"
+        ],
+        "title": "Heat Kernel Experiment",
+        "updated": "2026-04-03T00:00:00Z"
+      },
+      "path": "notes/experiment/heat-kernel.tex"
+    },
+    {
+      "body": "\\section{Poincare Lemma}\n\nThe proof sketch points onward to \\nvlink{hk} and leaves one intentionally\nmissing reference at \\nvlink{missing-theorem}.",
+      "links": [
+        {
+          "label": null,
+          "target": "hk"
+        },
+        {
+          "label": null,
+          "target": "missing-theorem"
+        }
+      ],
+      "metadata": {
+        "aliases": [
+          "poincare-lemma"
+        ],
+        "created": "2026-04-03T00:00:00Z",
+        "id": "lemma-poincare",
+        "note_type": "proof",
+        "tags": [
+          "analysis"
+        ],
+        "title": "Poincare Lemma",
+        "updated": "2026-04-03T00:00:00Z"
+      },
+      "path": "notes/proof/lemma-poincare.tex"
+    },
+    {
+      "body": "\\section{Engel and Nagel}\n\nReference note sharing an alias with another note so ambiguous resolution is\neasy to trigger.",
+      "links": [],
+      "metadata": {
+        "aliases": [
+          "shared-semigroup"
+        ],
+        "created": "2026-04-03T00:00:00Z",
+        "id": "engel-nagel",
+        "note_type": "ref",
+        "tags": [
+          "bibliography"
+        ],
+        "title": "Engel and Nagel",
+        "updated": "2026-04-03T00:00:00Z"
+      },
+      "path": "notes/ref/engel-nagel.tex"
+    }
+  ],
+  "outbound": {
+    "engel-nagel": [],
+    "heat-kernel": [
+      {
+        "candidate_ids": [
+          "spectral-gap"
+        ],
+        "label": null,
+        "resolved_id": "spectral-gap",
+        "source_id": "heat-kernel",
+        "target": "spectral-gap"
+      }
+    ],
+    "lemma-poincare": [
+      {
+        "candidate_ids": [
+          "heat-kernel"
+        ],
+        "label": null,
+        "resolved_id": "heat-kernel",
+        "source_id": "lemma-poincare",
+        "target": "hk"
+      },
+      {
+        "candidate_ids": [],
+        "label": null,
+        "resolved_id": null,
+        "source_id": "lemma-poincare",
+        "target": "missing-theorem"
+      }
+    ],
+    "operator-semigroup": [],
+    "spectral-gap": [
+      {
+        "candidate_ids": [
+          "lemma-poincare"
+        ],
+        "label": "The Poincare Lemma",
+        "resolved_id": "lemma-poincare",
+        "source_id": "spectral-gap",
+        "target": "lemma-poincare"
+      },
+      {
+        "candidate_ids": [
+          "engel-nagel",
+          "operator-semigroup"
+        ],
+        "label": null,
+        "resolved_id": null,
+        "source_id": "spectral-gap",
+        "target": "shared-semigroup"
+      }
+    ],
+    "test-note": []
+  }
+}
