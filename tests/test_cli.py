@@ -251,9 +251,7 @@ def test_stitch_command_writes_document_in_requested_order(tmp_path: Path) -> No
     assert exit_code == 0
     assert "build/stitched.tex" in output.getvalue()
     assert r"\title{Demo Bundle}" in stitched_text
-    assert stitched_text.index(r"\input{../notes/proof/beta.tex}") < stitched_text.index(
-        r"\input{../notes/concept/alpha.tex}"
-    )
+    assert stitched_text.index("% note: beta") < stitched_text.index("% note: alpha")
 
 
 def test_stitch_command_honors_custom_output_path(tmp_path: Path) -> None:
@@ -340,12 +338,8 @@ def test_stitch_command_can_render_whole_workspace(tmp_path: Path) -> None:
     stitched_text = (tmp_path / "build" / "stitched.tex").read_text(encoding="utf-8")
 
     assert exit_code == 0
-    assert stitched_text.index(r"\input{../notes/concept/alpha.tex}") < stitched_text.index(
-        r"\input{../notes/experiment/gamma.tex}"
-    )
-    assert stitched_text.index(r"\input{../notes/experiment/gamma.tex}") < stitched_text.index(
-        r"\input{../notes/proof/beta.tex}"
-    )
+    assert stitched_text.index("% note: alpha") < stitched_text.index("% note: gamma")
+    assert stitched_text.index("% note: gamma") < stitched_text.index("% note: beta")
 
 
 def test_stitch_command_requires_references_or_all(tmp_path: Path) -> None:

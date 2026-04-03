@@ -39,6 +39,7 @@ def stitch_command(
     """
 
     workspace = find_workspace(cwd)
+    index = load_index(workspace)
     if stitch_all:
         if references:
             raise ValueError("Use either explicit note references or --all, not both.")
@@ -46,7 +47,6 @@ def stitch_command(
     else:
         if not references:
             raise ValueError("Provide at least one note reference or pass --all.")
-        index = load_index(workspace)
         notes = [find_note(index, reference) for reference in references]
 
     resolved_output = output_path
@@ -58,6 +58,8 @@ def stitch_command(
         notes,
         output_path=resolved_output,
         title=title,
+        notes_by_id=index.notes_by_id,
+        aliases=index.aliases,
     )
     print(f"Wrote stitched document to {stitched_path.relative_to(workspace.root)}")
     return 0
