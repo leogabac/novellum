@@ -8,16 +8,24 @@ import shlex
 import subprocess
 
 from novellum.index import find_note, load_index
+from novellum.selection import select_note_reference
 from novellum.storage import find_workspace
 
 
-def edit_command(reference: str, cwd: Path = Path(".")) -> int:
+def edit_command(
+    reference: str | None = None,
+    interactive: bool = True,
+    cwd: Path = Path("."),
+) -> int:
     """Open a note in the user's configured editor.
 
     Parameters
     ----------
-    reference : str
-        Note ID or alias.
+    reference : str or None, optional
+        Note ID or alias. When omitted, interactive selection is attempted.
+    interactive : bool, optional
+        Whether interactive note selection should be attempted when the
+        reference is omitted.
     cwd : Path, optional
         Path used for workspace discovery.
 
@@ -29,7 +37,12 @@ def edit_command(reference: str, cwd: Path = Path(".")) -> int:
 
     workspace = find_workspace(cwd)
     index = load_index(workspace)
-    note = find_note(index, reference)
+    resolved_reference = reference
+    if resolved_reference is None and interactive:
+        resolved_reference = select_note_reference(index)
+    if resolved_reference is None:
+        raise ValueError("Provide a note reference or install fzf for interactive selection.")
+    note = find_note(index, resolved_reference)
 
     editor = os.environ.get("EDITOR", "").strip()
     if not editor:

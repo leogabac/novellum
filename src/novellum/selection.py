@@ -1,0 +1,60 @@
+"""Interactive note-selection helpers."""
+
+from __future__ import annotations
+
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+from novellum.index import NoteIndex
+
+
+def select_note_reference(index: NoteIndex) -> str | None:
+    """Select a single note reference via ``fzf`` when available."""
+
+    selected = _run_fzf(index, multi=False)
+    if not selected:
+        return None
+    return selected[0]
+
+
+def select_note_references(index: NoteIndex) -> list[str] | None:
+    """Select multiple note references via ``fzf`` when available."""
+
+    return _run_fzf(index, multi=True)
+
+
+def _run_fzf(index: NoteIndex, multi: bool) -> list[str] | None:
+    """Run ``fzf`` over the note list and return selected note IDs."""
+
+    fzf = shutil.which("fzf")
+    if fzf is None:
+        print("Warning: fzf not found; falling back to non-interactive mode.", file=sys.stderr)
+        return None
+
+    lines = [_render_note_choice(index, note_id) for note_id in sorted(index.notes_by_id)]
+    command = [fzf]
+    if multi:
+        command.append("-m")
+    command.extend(["--with-nth=2.."])
+
+    result = subprocess.run(
+        command,
+        input="\n".join(lines),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return []
+    selected = [line.split("\t", 1)[0] for line in result.stdout.splitlines() if line.strip()]
+    return selected
+
+
+def _render_note_choice(index: NoteIndex, note_id: str) -> str:
+    """Render one note choice line for interactive selection."""
+
+    note = index.notes_by_id[note_id]
+    aliases = ", ".join(note.metadata.aliases) if note.metadata.aliases else "-"
+    return "\t".join([note.metadata.id, note.metadata.note_type, note.metadata.title, aliases])

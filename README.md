@@ -42,6 +42,8 @@ then `novellum` might actually be useful to you.
 * Stitched LaTeX output for selected notes or the whole workspace
 * Clickable internal note links inside stitched compiled documents
 * Workspace root configured for `natbib` and BibTeX instead of `biblatex`/`biber`
+* PDF opening through a configurable viewer command
+* Default interactive note selection via `fzf`
 
 ## Installation
 
@@ -62,6 +64,7 @@ You will probably also want:
 1. a LaTeX toolchain with `latexmk`
 2. BibTeX
 3. an editor configured through `$EDITOR`
+4. `fzf` if you want the default interactive selection flow
 
 ## Quickstart
 
@@ -92,17 +95,23 @@ Inspect and navigate:
 
 ```sh
 novellum list
-novellum show spectral-gap
-novellum backlinks spectral-gap
+novellum show
+novellum backlinks
 novellum broken
 novellum search poincare
 ```
+
+> [!NOTE]
+> Commands like `show`, `edit`, `links`, `backlinks`, and `stitch` now default to interactive note picking through `fzf` when you omit note IDs.
+> If `fzf` is not installed, Novellum warns and falls back to the old non-interactive behavior.
+> Use `--no-interactive` to disable that behavior explicitly.
 
 Produce a stitched document and compile it:
 
 ```sh
 novellum stitch spectral-gap lemma-poincare --title "Draft Notes"
 novellum compile stitched
+novellum open stitched
 ```
 
 Or stitch the whole workspace:
@@ -203,8 +212,10 @@ Inspect them:
 
 ```sh
 novellum list
-novellum show hk
-novellum edit operator-semigroup
+novellum show
+novellum edit
+novellum show hk --no-interactive
+novellum edit operator-semigroup --no-interactive
 ```
 
 ### Graph workflow
@@ -212,8 +223,8 @@ novellum edit operator-semigroup
 Find outgoing links, backlinks, and diagnostics:
 
 ```sh
-novellum links spectral-gap
-novellum backlinks lemma-poincare
+novellum links
+novellum backlinks
 novellum broken
 ```
 
@@ -237,6 +248,7 @@ Stitch specific notes:
 
 ```sh
 novellum stitch spectral-gap lemma-poincare --title "Analysis Draft"
+novellum stitch --title "Choose Notes Interactively"
 ```
 
 Stitch everything:
@@ -253,6 +265,15 @@ novellum compile stitched
 novellum compile build/drafts/custom.tex
 ```
 
+Open the resulting PDFs:
+
+```sh
+novellum open
+novellum open stitched
+novellum open workspace
+NOVELLUM_PDF_VIEWER="zathura" novellum open stitched
+```
+
 ## Current Commands
 
 * `novellum init`
@@ -266,6 +287,7 @@ novellum compile build/drafts/custom.tex
 * `novellum search`
 * `novellum stitch`
 * `novellum compile`
+* `novellum open`
 * `novellum log new`
 * `novellum today`
 
@@ -280,6 +302,8 @@ Right now the project can already do the following:
 * search note metadata and body text
 * generate stitched `.tex` output
 * compile the workspace root or stitched files with `latexmk`
+* open compiled PDFs with a configurable viewer
 * rewrite stitched internal note links into clickable PDF hyperlinks
+* default to `fzf`-based interactive note selection when it makes sense
 
 The next obvious work is mostly polish and figure out how to make a neovim integration.

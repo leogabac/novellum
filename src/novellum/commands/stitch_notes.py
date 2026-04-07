@@ -6,12 +6,14 @@ from pathlib import Path
 
 from novellum.index import find_note, load_index
 from novellum.render import write_stitched_document
+from novellum.selection import select_note_references
 from novellum.storage import find_workspace, list_notes
 
 
 def stitch_command(
     references: list[str],
     stitch_all: bool = False,
+    interactive: bool = True,
     title: str = "Novellum Stitch",
     output_path: Path | None = None,
     cwd: Path = Path("."),
@@ -25,6 +27,9 @@ def stitch_command(
     stitch_all : bool, optional
         When true, stitch every note in the workspace using filesystem sort
         order instead of explicit references.
+    interactive : bool, optional
+        Whether interactive note selection should be attempted when explicit
+        references are omitted.
     title : str, optional
         Document title for the generated output.
     output_path : Path or None, optional
@@ -45,9 +50,12 @@ def stitch_command(
             raise ValueError("Use either explicit note references or --all, not both.")
         notes = list_notes(workspace)
     else:
-        if not references:
-            raise ValueError("Provide at least one note reference or pass --all.")
-        notes = [find_note(index, reference) for reference in references]
+        selected_references = references
+        if not selected_references and interactive:
+            selected_references = select_note_references(index) or []
+        if not selected_references:
+            raise ValueError("Provide note references, pass --all, or install fzf for interactive selection.")
+        notes = [find_note(index, reference) for reference in selected_references]
 
     resolved_output = output_path
     if resolved_output is not None and not resolved_output.is_absolute():

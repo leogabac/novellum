@@ -466,7 +466,7 @@ def test_stitch_command_requires_references_or_all(tmp_path: Path) -> None:
         exit_code = main(["stitch", "--cwd", str(tmp_path)])
 
     assert exit_code == 1
-    assert "Provide at least one note reference or pass --all." in error_output.getvalue()
+    assert "Provide note references, pass --all, or install fzf" in error_output.getvalue()
 
 
 def test_stitch_command_rejects_references_with_all(tmp_path: Path) -> None:
@@ -690,7 +690,7 @@ def test_show_reports_missing_note_as_cli_error(tmp_path: Path) -> None:
 
     error_output = io.StringIO()
     with redirect_stderr(error_output):
-        exit_code = main(["show", "does-not-exist", "--cwd", str(tmp_path)])
+        exit_code = main(["show", "does-not-exist", "--no-interactive", "--cwd", str(tmp_path)])
 
     assert exit_code == 1
     assert "No note found" in error_output.getvalue()
@@ -729,7 +729,7 @@ def test_show_reports_ambiguous_alias_as_cli_error(tmp_path: Path) -> None:
 
     error_output = io.StringIO()
     with redirect_stderr(error_output):
-        exit_code = main(["show", "shared", "--cwd", str(tmp_path)])
+        exit_code = main(["show", "shared", "--no-interactive", "--cwd", str(tmp_path)])
 
     assert exit_code == 1
     assert "ambiguous" in error_output.getvalue()
@@ -766,7 +766,118 @@ def test_show_reports_duplicate_ids_as_cli_error(tmp_path: Path) -> None:
 
     error_output = io.StringIO()
     with redirect_stderr(error_output):
-        exit_code = main(["show", "duplicate", "--cwd", str(tmp_path)])
+        exit_code = main(["show", "duplicate", "--no-interactive", "--cwd", str(tmp_path)])
 
     assert exit_code == 1
     assert "Duplicate note ID" in error_output.getvalue()
+
+
+def test_show_uses_interactive_selection_when_reference_is_omitted(tmp_path: Path, monkeypatch) -> None:
+    """``show`` should use ``fzf`` selection by default when no reference is given."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha Note
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+
+    def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        class Result:
+            returncode = 0
+            stdout = "alpha\tconcept\tAlpha Note\t-\n"
+
+        return Result()
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/fzf" if name == "fzf" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["show", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert "Alpha Note" in output.getvalue()
+
+
+def test_stitch_uses_interactive_multi_selection_when_references_are_omitted(tmp_path: Path, monkeypatch) -> None:
+    """``stitch`` should use multi-select ``fzf`` when no references are provided."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    beta = """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+
+    def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        class Result:
+            returncode = 0
+            stdout = "beta\tproof\tBeta\t-\nalpha\tconcept\tAlpha\t-\n"
+
+        return Result()
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/fzf" if name == "fzf" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    exit_code = main(["stitch", "--cwd", str(tmp_path)])
+    stitched_text = (tmp_path / "build" / "stitched.tex").read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert stitched_text.index("% note: beta") < stitched_text.index("% note: alpha")
+
+
+def test_interactive_commands_warn_and_fall_back_when_fzf_is_missing(tmp_path: Path, monkeypatch) -> None:
+    """Missing ``fzf`` should warn, then fall back to the old required-argument behavior."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    monkeypatch.setattr("shutil.which", lambda name: None)
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["show", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Warning: fzf not found" in error_output.getvalue()
+    assert "Provide a note reference" in error_output.getvalue()
+
+
+def test_no_interactive_requires_reference_for_single_note_commands(tmp_path: Path) -> None:
+    """``--no-interactive`` should keep the old required-reference behavior."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["show", "--no-interactive", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Provide a note reference" in error_output.getvalue()

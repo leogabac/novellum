@@ -54,19 +54,23 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser.add_argument("--cwd", default=".")
 
     show_parser = subparsers.add_parser("show", help="Show a note.")
-    show_parser.add_argument("reference")
+    show_parser.add_argument("reference", nargs="?")
+    show_parser.add_argument("--no-interactive", action="store_true")
     show_parser.add_argument("--cwd", default=".")
 
     edit_parser = subparsers.add_parser("edit", help="Open a note in $EDITOR.")
-    edit_parser.add_argument("reference")
+    edit_parser.add_argument("reference", nargs="?")
+    edit_parser.add_argument("--no-interactive", action="store_true")
     edit_parser.add_argument("--cwd", default=".")
 
     links_parser = subparsers.add_parser("links", help="Show note links.")
-    links_parser.add_argument("reference")
+    links_parser.add_argument("reference", nargs="?")
+    links_parser.add_argument("--no-interactive", action="store_true")
     links_parser.add_argument("--cwd", default=".")
 
     backlinks_parser = subparsers.add_parser("backlinks", help="Show inbound links to a note.")
-    backlinks_parser.add_argument("reference")
+    backlinks_parser.add_argument("reference", nargs="?")
+    backlinks_parser.add_argument("--no-interactive", action="store_true")
     backlinks_parser.add_argument("--cwd", default=".")
 
     broken_parser = subparsers.add_parser("broken", help="Show unresolved or ambiguous links.")
@@ -79,6 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
     stitch_parser = subparsers.add_parser("stitch", help="Generate a stitched LaTeX document from notes.")
     stitch_parser.add_argument("references", nargs="*")
     stitch_parser.add_argument("--all", action="store_true", dest="stitch_all")
+    stitch_parser.add_argument("--no-interactive", action="store_true")
     stitch_parser.add_argument("--title", default="Novellum Stitch")
     stitch_parser.add_argument("--output", default=None)
     stitch_parser.add_argument("--cwd", default=".")
@@ -139,13 +144,17 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "list":
             return list_command(note_type=args.note_type, cwd=Path(args.cwd))
         if args.command == "show":
-            return show_command(reference=args.reference, cwd=Path(args.cwd))
+            return show_command(reference=args.reference, interactive=not args.no_interactive, cwd=Path(args.cwd))
         if args.command == "edit":
-            return edit_command(reference=args.reference, cwd=Path(args.cwd))
+            return edit_command(reference=args.reference, interactive=not args.no_interactive, cwd=Path(args.cwd))
         if args.command == "links":
-            return links_command(reference=args.reference, cwd=Path(args.cwd))
+            return links_command(reference=args.reference, interactive=not args.no_interactive, cwd=Path(args.cwd))
         if args.command == "backlinks":
-            return backlinks_command(reference=args.reference, cwd=Path(args.cwd))
+            return backlinks_command(
+                reference=args.reference,
+                interactive=not args.no_interactive,
+                cwd=Path(args.cwd),
+            )
         if args.command == "broken":
             return broken_command(cwd=Path(args.cwd))
         if args.command == "search":
@@ -155,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
             return stitch_command(
                 references=args.references,
                 stitch_all=args.stitch_all,
+                interactive=not args.no_interactive,
                 title=args.title,
                 output_path=output_path,
                 cwd=Path(args.cwd),
