@@ -19,6 +19,7 @@ from novellum.commands.links import links_command
 from novellum.commands.list_notes import list_command
 from novellum.commands.log_new import log_new_command
 from novellum.commands.new_note import new_command
+from novellum.commands.open_document import open_command
 from novellum.commands.search_notes import search_command
 from novellum.commands.show_note import show_command
 from novellum.commands.stitch_notes import stitch_command
@@ -85,6 +86,10 @@ def build_parser() -> argparse.ArgumentParser:
     compile_parser = subparsers.add_parser("compile", help="Compile a workspace or stitched LaTeX target.")
     compile_parser.add_argument("target", nargs="?", default="workspace")
     compile_parser.add_argument("--cwd", default=".")
+
+    open_parser = subparsers.add_parser("open", help="Open a compiled PDF target in a viewer.")
+    open_parser.add_argument("target", nargs="?", default="stitched")
+    open_parser.add_argument("--cwd", default=".")
 
     log_parser = subparsers.add_parser("log", help="Create and manage research log notes.")
     log_subparsers = log_parser.add_subparsers(dest="log_command", required=True)
@@ -156,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         if args.command == "compile":
             return compile_command(target=args.target, cwd=Path(args.cwd))
+        if args.command == "open":
+            return open_command(target=args.target, cwd=Path(args.cwd))
         if args.command == "log":
             if args.log_command == "new":
                 return log_new_command(title=args.title, log_date=args.log_date, cwd=Path(args.cwd))

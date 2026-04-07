@@ -548,7 +548,14 @@ def test_compile_command_can_target_stitched_document(tmp_path: Path, monkeypatc
     exit_code = main(["compile", "stitched", "--cwd", str(tmp_path)])
 
     assert exit_code == 0
-    assert captured["command"][-1] == "build/stitched.tex"
+    assert captured["command"] == [
+        "/usr/bin/latexmk",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-output-directory=.",
+        "stitched.tex",
+    ]
+    assert captured["cwd"] == tmp_path / "build"
 
 
 def test_compile_command_reports_missing_latexmk(tmp_path: Path, monkeypatch) -> None:
@@ -581,6 +588,98 @@ def test_compile_command_reports_missing_target(tmp_path: Path, monkeypatch) -> 
 
     assert exit_code == 1
     assert "Compile target does not exist" in error_output.getvalue()
+
+
+def test_open_command_defaults_to_stitched_pdf(tmp_path: Path, monkeypatch) -> None:
+    """``open`` should default to the stitched PDF output."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+    (tmp_path / "build" / "stitched.pdf").write_bytes(b"%PDF-1.4\n")
+
+    captured: dict[str, object] = {}
+
+    class DummyProcess:
+        pass
+
+    def fake_popen(command: list[str], cwd: Path) -> DummyProcess:
+        captured["command"] = command
+        captured["cwd"] = cwd
+        return DummyProcess()
+
+    monkeypatch.delenv("NOVELLUM_PDF_VIEWER", raising=False)
+    monkeypatch.delenv("PDF_VIEWER", raising=False)
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/zathura" if name == "zathura" else None)
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["open", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert captured["command"] == ["/usr/bin/zathura", str(tmp_path / "build" / "stitched.pdf")]
+    assert captured["cwd"] == tmp_path
+    assert "Opened build/stitched.pdf" in output.getvalue()
+
+
+def test_open_command_honors_configured_pdf_viewer(tmp_path: Path, monkeypatch) -> None:
+    """``open`` should use the configured viewer command when provided."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+    (tmp_path / "build" / "workspace.pdf").write_bytes(b"%PDF-1.4\n")
+
+    captured: dict[str, object] = {}
+
+    class DummyProcess:
+        pass
+
+    def fake_popen(command: list[str], cwd: Path) -> DummyProcess:
+        captured["command"] = command
+        captured["cwd"] = cwd
+        return DummyProcess()
+
+    monkeypatch.setenv("NOVELLUM_PDF_VIEWER", "okular --unique")
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    exit_code = main(["open", "workspace", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert captured["command"] == ["okular", "--unique", str(tmp_path / "build" / "workspace.pdf")]
+    assert captured["cwd"] == tmp_path
+
+
+def test_open_command_reports_missing_pdf(tmp_path: Path) -> None:
+    """``open`` should fail clearly when the compiled PDF is missing."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["open", "stitched", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Compiled PDF does not exist" in error_output.getvalue()
+
+
+def test_open_command_reports_missing_viewer(tmp_path: Path, monkeypatch) -> None:
+    """``open`` should fail clearly when no viewer is available."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+    (tmp_path / "build" / "stitched.pdf").write_bytes(b"%PDF-1.4\n")
+
+    monkeypatch.delenv("NOVELLUM_PDF_VIEWER", raising=False)
+    monkeypatch.delenv("PDF_VIEWER", raising=False)
+    monkeypatch.setattr("shutil.which", lambda name: None)
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["open", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "No PDF viewer found" in error_output.getvalue()
 
 
 def test_show_reports_missing_note_as_cli_error(tmp_path: Path) -> None:
