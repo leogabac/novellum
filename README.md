@@ -1,5 +1,9 @@
 # novellum
 
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="novellum logo" width="220">
+</p>
+
 ![Static Badge](https://img.shields.io/badge/repo-novellum-blue?logo=github) ![Static Badge](https://img.shields.io/badge/status-dev-red?logo=github)
 
 A CLI linked LaTeX note system for research logbooks.
@@ -12,21 +16,23 @@ A CLI linked LaTeX note system for research logbooks.
 
 Notes are just `.tex` fragments. Metadata lives in a LaTeX comment block. Links use `\nvlink{...}`. Bibliography stays in a shared `references.bib`. The workspace has a normal `tex/workspace.tex` root so editor tooling like VimTeX can still behave like it is inside a regular LaTeX project.
 
-This project exists because I wanted a local-first research notebook that felt more like a pile of theorem scraps, proof fragments, reading notes, and lab notebook entries than a polished notes app.
+This repo came from a very particular irritation.
 
-**Why choose `novellum`?**
+I wanted a notebook for theorem scraps, proof fragments, reading notes, and lab
+log entries. I wanted linking and graph navigation. I also wanted normal TeX
+files, normal shell tools, normal editor integration, and had approximately zero
+interest in migrating my research notes into an app that would like to become
+my entire lifestyle.
 
-You do not have to. I am building this because I am way too opinionated and pedantic on my notes, and it scratches a very specific itch in how I work.
+So the project became:
 
-If what you want is:
+* local first, because I can't afford to pay Google Drive.
+* LaTeX native, i.e. no funny parsing tricks that could make the LaTeX compiler angry.
+* graph aware, i.e. fancy words that Obsidian people like to use
+* CLI driven, for pedantic terminal users like me
+* mildly theatrical, because apparently I cannot resist putting a little lore into my tooling
 
-* plain-text source of truth
-* close to LaTeX-native notes
-* links, backlinks, broken-link diagnostics
-* stitched draft documents
-* a CLI workflow that can later integrate with Neovim cleanly
-
-then `novellum` might actually be useful to you.
+It also exists because my patience for opening a heavy note app just to write three lines of operator theory and one cursed bibliography entry is, technically speaking, not infinite.
 
 > [!NOTE]
 > The name _novellum_.
@@ -53,12 +59,6 @@ For now, install it with `pip` from the project root:
 pip install .
 ```
 
-If you are developing locally, the editable install is more convenient:
-
-```sh
-pip install -e .
-```
-
 You will probably also want:
 
 1. a LaTeX toolchain with `latexmk`
@@ -68,132 +68,7 @@ You will probably also want:
 
 ## Quickstart
 
-Create a workspace:
-
-```sh
-novellum init my-notes
-cd my-notes
-```
-
-Create a few notes:
-
-```sh
-novellum new "Spectral Gap" --type concept --alias sg
-novellum new "Poincare Lemma" --type proof --id lemma-poincare
-novellum log new
-```
-> [!NOTE]
-> Most of the flags are optional, and you can modify them in the actual `.tex`. Checkout the help for more assistance.
-
-Open or create today's log note:
-
-```sh
-EDITOR="nvim" novellum today
-```
-
-Inspect and navigate:
-
-```sh
-novellum list
-novellum show
-novellum backlinks
-novellum broken
-novellum search poincare
-```
-
-> [!NOTE]
-> Commands like `show`, `edit`, `links`, `backlinks`, and `stitch` now default to interactive note picking through `fzf` when you omit note IDs.
-> If `fzf` is not installed, Novellum warns and falls back to the old non-interactive behavior.
-> Use `--no-interactive` to disable that behavior explicitly.
-
-Produce a stitched document and compile it:
-
-```sh
-novellum stitch spectral-gap lemma-poincare --title "Draft Notes"
-novellum compile stitched
-novellum open stitched
-```
-
-Or stitch the whole workspace:
-
-```sh
-novellum stitch --all --title "Whole Notebook"
-novellum compile stitched
-```
-
-## Workspace Layout
-
-`novellum init` creates a workspace like this:
-
-```text
-.novellum/
-  config.toml
-  index.json
-  templates/
-notes/
-  concept/
-  proof/
-  paper/
-  experiment/
-  question/
-  log/
-  ref/
-bibliography/
-  references.bib
-tex/
-  workspace.tex
-  novellum.sty
-build/
-```
-
-Some notes:
-
-* note files under `notes/` are the source of truth
-* `.novellum/index.json` is a generated cache and can be rebuilt
-* `tex/workspace.tex` is a normal LaTeX root for editor integration
-* `bibliography/references.bib` is the shared bibliography file
-* `build/` stores stitched output and compile artifacts
-
-## Note Format
-
-Here is what a note looks like:
-
-```tex
-% novellum:begin
-% id: spectral-gap
-% title: Spectral Gap
-% type: concept
-% created: 2026-04-03T00:00:00Z
-% updated: 2026-04-03T00:00:00Z
-% tags: analysis, operator-theory
-% aliases: sg
-% novellum:end
-
-\section{Spectral Gap}
-
-This connects to \nvlink[The Poincare Lemma]{lemma-poincare}.
-We can still cite things normally with \cite{engel_nagel_2000}.
-```
-
-Important details:
-
-* IDs resolve before aliases
-* ambiguous aliases are treated as errors for direct lookup
-* ambiguous aliases are reported as broken links in diagnostics
-* only `\nvlink` is used for internal note graph edges
-
-## Bibliography
-
-`novellum` keeps citations standard. Use normal LaTeX citation commands like `\cite{key}` in note bodies.
-
-The default workspace uses `natbib` with BibTeX rather than `biblatex` with `biber`. That choice is mostly pragmatic: it is simpler to get working on a lot of machines and makes the default compile workflow less annoying.
-
-That means:
-
-* VimTeX can still see a real TeX root
-* citation completion can still use `bibliography/references.bib`
-* notes stay readable as plain LaTeX fragments
-* compilation works with `latexmk` plus a standard BibTeX recipe
+See the [10-minute guide](https://leogabac.github.io/novellum/getting-started/10-minute-guide/)
 
 ## Usage
 
@@ -276,34 +151,14 @@ NOVELLUM_PDF_VIEWER="zathura" novellum open stitched
 
 ## Current Commands
 
-* `novellum init`
-* `novellum new`
-* `novellum list`
-* `novellum show`
-* `novellum edit`
-* `novellum links`
-* `novellum backlinks`
-* `novellum broken`
-* `novellum search`
-* `novellum stitch`
-* `novellum compile`
-* `novellum open`
-* `novellum log new`
-* `novellum today`
+See the [CLI Documenation Page](https://leogabac.github.io/novellum/cli/)
 
-## Current State
+## Documentation
 
-Right now the project can already do the following:
+See the [Documentation](https://leogabac.github.io/novellum/) site.
 
-* initialize a workspace
-* create typed notes from templates
-* create and open dated log notes
-* index note links and backlinks
-* search note metadata and body text
-* generate stitched `.tex` output
-* compile the workspace root or stitched files with `latexmk`
-* open compiled PDFs with a configurable viewer
-* rewrite stitched internal note links into clickable PDF hyperlinks
-* default to `fzf`-based interactive note selection when it makes sense
+## Roadmap
 
-The next obvious work is mostly polish and figure out how to make a neovim integration.
+The project is usable enough now ...
+
+The fuller roadmap lives in [docs/roadmap.md](docs/roadmap.md).

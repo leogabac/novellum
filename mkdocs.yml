@@ -1,0 +1,55 @@
+site_name: novellum
+site_description: A CLI-linked LaTeX note system for research logbooks.
+site_url: https://example.com/novellum
+repo_name: leogabac/novellum
+repo_url: https://github.com/leogabac/novellum
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - 10-Minute Guide: getting-started/10-minute-guide.md
+  - CLI:
+      - cli/index.md
+      - init: cli/init.md
+      - new: cli/new.md
+      - list: cli/list.md
+      - show: cli/show.md
+      - edit: cli/edit.md
+      - links: cli/links.md
+      - backlinks: cli/backlinks.md
+      - broken: cli/broken.md
+      - search: cli/search.md
+      - stitch: cli/stitch.md
+      - compile: cli/compile.md
+      - open: cli/open.md
+      - select: cli/select.md
+      - log new: cli/log-new.md
+      - today: cli/today.md
+  - Roadmap: roadmap.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+extra_css:
+  - stylesheets/extra.css
