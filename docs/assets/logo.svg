@@ -20,9 +20,9 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="1.3775"
-     inkscape:cx="599.63702"
-     inkscape:cy="209.80036"
+     inkscape:zoom="1.0223633"
+     inkscape:cx="518.89579"
+     inkscape:cy="254.31273"
      inkscape:window-width="1752"
      inkscape:window-height="1023"
      inkscape:window-x="0"
@@ -83,12 +83,6 @@
          flood-opacity="0.45" />
     </filter>
   </defs>
-  <rect
-     width="1200"
-     height="420"
-     rx="72"
-     fill="#140f1d"
-     id="rect5" />
   <g
      filter="url(#shadow)"
      id="g8">

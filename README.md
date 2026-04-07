@@ -151,11 +151,22 @@ NOVELLUM_PDF_VIEWER="zathura" novellum open stitched
 
 ## Current Commands
 
-See the [CLI Documenation Page](https://leogabac.github.io/novellum/cli/)
+See the [CLI documentation](https://leogabac.github.io/novellum/cli/).
 
 ## Documentation
 
-See the [Documentation](https://leogabac.github.io/novellum/) site.
+See the published [documentation site](https://leogabac.github.io/novellum/).
+
+To preview the documentation locally:
+
+```sh
+pip install -e ".[docs]"
+mkdocs serve
+```
+
+GitHub Pages publishing is configured through GitHub Actions. Pushes to `main`
+build and deploy the site once GitHub Pages is enabled in the repository
+settings with GitHub Actions as the source.
 
 ## Roadmap
 
