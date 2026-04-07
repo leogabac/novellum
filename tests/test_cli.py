@@ -682,6 +682,77 @@ def test_open_command_reports_missing_viewer(tmp_path: Path, monkeypatch) -> Non
     assert "No PDF viewer found" in error_output.getvalue()
 
 
+def test_select_command_prints_iteratively_selected_note_ids(tmp_path: Path, monkeypatch) -> None:
+    """``select`` should accumulate note IDs in the order chosen by the user."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    beta = """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+
+    responses = iter(
+        [
+            "beta\tproof\tBeta\t-\n",
+            "alpha\tconcept\tAlpha\t-\n",
+            "[done]\tfinish\tfinish selection (2 chosen)\ttype q then enter\n",
+        ]
+    )
+
+    def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        class Result:
+            returncode = 0
+            stdout = next(responses)
+
+        return Result()
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/fzf" if name == "fzf" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["select", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert output.getvalue().splitlines() == ["beta", "alpha"]
+
+
+def test_select_command_requires_fzf(tmp_path: Path, monkeypatch) -> None:
+    """``select`` should fail cleanly when ``fzf`` is unavailable."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    monkeypatch.setattr("shutil.which", lambda name: None)
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["select", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Warning: fzf not found" in error_output.getvalue()
+    assert "Interactive selection requires fzf" in error_output.getvalue()
+
+
 def test_show_reports_missing_note_as_cli_error(tmp_path: Path) -> None:
     """Lookup failures should produce CLI-style stderr output."""
 
