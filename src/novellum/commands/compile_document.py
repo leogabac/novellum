@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -44,7 +45,14 @@ def compile_command(
         build_dir=workspace.build_dir,
         source_path=source_path,
     )
-    subprocess.run(command, check=True, cwd=command_cwd)
+    try:
+        subprocess.run(command, check=True, cwd=command_cwd)
+    except subprocess.CalledProcessError as error:
+        if source_path.name == "stitched.tex":
+            message = _diagnose_stitched_compile_failure(workspace, source_path)
+            if message is not None:
+                raise RuntimeError(message) from error
+        raise RuntimeError(f"latexmk failed while compiling {display_target}. Check the LaTeX log for details.") from error
     print(f"Compiled {display_target} into {display_output}")
     return 0
 
@@ -112,3 +120,53 @@ def _build_latexmk_command(
         str(source_path.relative_to(workspace_root)),
         str(build_dir.relative_to(workspace_root)),
     )
+
+
+def _diagnose_stitched_compile_failure(workspace, source_path: Path) -> str | None:
+    """Provide a clearer error for common stitched-document failures."""
+
+    log_path = source_path.with_suffix(".log")
+    preamble_path = workspace.tex_dir / "stitched-preamble.tex"
+    log_text = log_path.read_text(encoding="utf-8") if log_path.exists() else ""
+    undefined_macros = _extract_undefined_macros(log_text)
+
+    if not undefined_macros:
+        return None
+
+    if preamble_path.exists() and _preamble_has_no_active_content(preamble_path):
+        commands = ", ".join(f"\\{name}" for name in undefined_macros[:5])
+        return (
+            "Stitched document compilation failed because "
+            f"{preamble_path.relative_to(workspace.root)} only contains comments, "
+            f"but the stitched notes use commands such as {commands}. "
+            "Add the required packages to that file. For example, physics-style commands "
+            "like \\dv, \\qty, or \\grad require an active line such as \\usepackage{physics}."
+        )
+
+    commands = ", ".join(f"\\{name}" for name in undefined_macros[:5])
+    return (
+        "Stitched document compilation failed due to undefined LaTeX commands "
+        f"({commands}). Check {preamble_path.relative_to(workspace.root)} and ensure it loads "
+        "the packages needed by the stitched notes."
+    )
+
+
+def _extract_undefined_macros(log_text: str) -> list[str]:
+    """Extract undefined LaTeX command names from a log."""
+
+    matches = re.findall(r"^l\.\d+\s+\\([A-Za-z@]+)", log_text, flags=re.MULTILINE)
+    seen: list[str] = []
+    for name in matches:
+        if name not in seen:
+            seen.append(name)
+    return seen
+
+
+def _preamble_has_no_active_content(path: Path) -> bool:
+    """Return true when the preamble file only contains comments or blank lines."""
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("%"):
+            return False
+    return True

@@ -52,16 +52,19 @@ def render_stitched_document(
     lines = [
         r"\documentclass{article}",
         "",
-        r"\usepackage{amsmath,amssymb,amsthm}",
-        rf"\usepackage{{{package_path}}}",
-        r"\usepackage[numbers]{natbib}",
-        r"\providecommand{\nvstitchlink}[2]{\hyperref[#1]{\texttt{#2}}}",
-        r"\providecommand{\nvstitchlabel}[2]{\hyperref[#1]{#2\,\textsf{[note]}}}",
-        "",
     ]
     if stitched_preamble_path.exists():
         custom_preamble_path = _relative_from_base(base_dir, stitched_preamble_path)
         lines.extend([rf"\input{{{custom_preamble_path}}}", ""])
+    lines.extend(
+        [
+            rf"\usepackage{{{package_path}}}",
+            r"\usepackage[numbers]{natbib}",
+            r"\providecommand{\nvstitchlink}[2]{\hyperref[#1]{\texttt{#2}}}",
+            r"\providecommand{\nvstitchlabel}[2]{\hyperref[#1]{#2\,\textsf{[note]}}}",
+            "",
+        ]
+    )
     lines.extend(
         [
             rf"\title{{{title}}}",

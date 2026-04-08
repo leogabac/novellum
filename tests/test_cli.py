@@ -590,6 +590,33 @@ def test_compile_command_reports_missing_target(tmp_path: Path, monkeypatch) -> 
     assert "Compile target does not exist" in error_output.getvalue()
 
 
+def test_compile_command_reports_empty_stitched_preamble_helpfully(tmp_path: Path, monkeypatch) -> None:
+    """``compile stitched`` should explain the empty-preamble trap cleanly."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+    (tmp_path / "build" / "stitched.tex").write_text("\\documentclass{article}\n", encoding="utf-8")
+    (tmp_path / "build" / "stitched.log").write_text(
+        "! Undefined control sequence.\n"
+        "l.51     \\dv{x}{t} = v_t(x).\n",
+        encoding="utf-8",
+    )
+
+    def fake_run(command: list[str], check: bool, cwd: Path) -> None:
+        raise subprocess.CalledProcessError(returncode=12, cmd=command)
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/latexmk" if name == "latexmk" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["compile", "stitched", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "stitched-preamble.tex only contains comments" in error_output.getvalue()
+    assert "\\usepackage{physics}" in error_output.getvalue()
+
+
 def test_open_command_defaults_to_stitched_pdf(tmp_path: Path, monkeypatch) -> None:
     """``open`` should default to the stitched PDF output."""
 

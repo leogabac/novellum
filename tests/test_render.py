@@ -44,6 +44,8 @@ def test_render_stitched_document_uses_build_relative_paths(tmp_path: Path) -> N
         aliases={},
     )
 
+    assert rendered.index(r"\documentclass{article}") < rendered.index(r"\input{../tex/stitched-preamble.tex}")
+    assert r"\usepackage{amsmath,amssymb,amsthm}" not in rendered
     assert r"\usepackage{../tex/novellum}" in rendered
     assert r"\usepackage[numbers]{natbib}" in rendered
     assert r"\input{../tex/stitched-preamble.tex}" in rendered
