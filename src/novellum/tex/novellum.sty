@@ -3,11 +3,31 @@
 
 \RequirePackage{xparse}
 \RequirePackage{hyperref}
+\RequirePackage{xcolor}
+
+\definecolor{nvlinkborder}{HTML}{0F5C7A}
+\definecolor{nvlinkfill}{HTML}{EAF6FB}
+\definecolor{nvlinktext}{HTML}{083B4C}
 
 \NewDocumentCommand{\nvlink}{O{} m}{%
   \IfNoValueTF{#1}{%
     \texttt{#2}%
   }{%
     #1%
+  }%
+}
+
+\NewDocumentCommand{\nvstitchlink}{m m}{%
+  \hyperref[#1]{%
+    \begingroup
+    \setlength{\fboxsep}{1.5pt}%
+    \fcolorbox{nvlinkborder}{nvlinkfill}{\textcolor{nvlinktext}{\texttt{#2}}}%
+    \endgroup
+  }%
+}
+
+\NewDocumentCommand{\nvstitchlabel}{m m}{%
+  \hyperref[#1]{%
+    #2\,{\textcolor{nvlinkborder}{\textsf{[note]}}}%
   }%
 }

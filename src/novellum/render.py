@@ -55,6 +55,8 @@ def render_stitched_document(
         r"\usepackage{amsmath,amssymb,amsthm}",
         rf"\usepackage{{{package_path}}}",
         r"\usepackage[numbers]{natbib}",
+        r"\providecommand{\nvstitchlink}[2]{\hyperref[#1]{\texttt{#2}}}",
+        r"\providecommand{\nvstitchlabel}[2]{\hyperref[#1]{#2\,\textsf{[note]}}}",
         "",
     ]
     if stitched_preamble_path.exists():
@@ -178,8 +180,10 @@ def _render_note_body(
         if resolved is None or resolved not in included_ids:
             return match.group(0)
 
-        display = label if label is not None else rf"\texttt{{{target}}}"
-        return rf"\hyperref[{_note_anchor(resolved)}]{{{display}}}"
+        anchor = _note_anchor(resolved)
+        if label is not None:
+            return rf"\nvstitchlabel{{{anchor}}}{{{label}}}"
+        return rf"\nvstitchlink{{{anchor}}}{{{target}}}"
 
     return LINK_PATTERN.sub(replace_link, note.body)
 
