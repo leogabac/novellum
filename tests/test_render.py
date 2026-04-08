@@ -46,12 +46,36 @@ def test_render_stitched_document_uses_build_relative_paths(tmp_path: Path) -> N
 
     assert r"\usepackage{../tex/novellum}" in rendered
     assert r"\usepackage[numbers]{natbib}" in rendered
+    assert r"\input{../tex/stitched-preamble.tex}" in rendered
     assert r"\title{Bundle}" in rendered
     assert r"\bibliographystyle{plainnat}" in rendered
     assert r"\bibliography{../bibliography/references}" in rendered
     assert r"\label{nv:note:alpha}" in rendered
     assert r"\label{nv:note:beta}" in rendered
     assert r"\hyperref[nv:note:beta]{\texttt{beta}}" in rendered
+
+
+def test_render_stitched_document_skips_missing_custom_preamble(tmp_path: Path) -> None:
+    """Rendered stitched output should not reference a deleted preamble file."""
+
+    workspace = init_workspace(tmp_path)
+    (workspace.tex_dir / "stitched-preamble.tex").unlink()
+    alpha = Note(
+        path=tmp_path / "notes" / "concept" / "alpha.tex",
+        metadata=NoteMetadata(
+            id="alpha",
+            title="Alpha",
+            note_type="concept",
+            created="2026-04-03T00:00:00Z",
+            updated="2026-04-03T00:00:00Z",
+        ),
+        body="\\section{Alpha}",
+        links=[],
+    )
+
+    rendered = render_stitched_document(workspace, [alpha], title="Bundle", notes_by_id={"alpha": alpha}, aliases={})
+
+    assert r"\input{../tex/stitched-preamble.tex}" not in rendered
 
 
 def test_render_stitched_document_keeps_nonincluded_links_as_nvlink(tmp_path: Path) -> None:

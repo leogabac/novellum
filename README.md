@@ -132,6 +132,12 @@ Stitch everything:
 novellum stitch --all --title "Notebook Draft"
 ```
 
+Add stitched-only LaTeX packages or macros in `tex/stitched-preamble.tex`:
+
+```tex
+\usepackage{physics}
+```
+
 Compile either the workspace root or the stitched output:
 
 ```sh
@@ -156,17 +162,6 @@ See the [CLI documentation](https://leogabac.github.io/novellum/cli/).
 ## Documentation
 
 See the published [documentation site](https://leogabac.github.io/novellum/).
-
-To preview the documentation locally:
-
-```sh
-pip install -e ".[docs]"
-mkdocs serve
-```
-
-GitHub Pages publishing is configured through GitHub Actions. Pushes to `main`
-build and deploy the site once GitHub Pages is enabled in the repository
-settings with GitHub Actions as the source.
 
 ## Roadmap
 

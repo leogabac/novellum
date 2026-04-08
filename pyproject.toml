@@ -25,6 +25,7 @@ docs = [
 
 [project.scripts]
 novellum = "novellum.cli:main"
+nv = "novellum.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

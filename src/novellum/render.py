@@ -45,6 +45,7 @@ def render_stitched_document(
     base_dir = resolved_output.parent
     bibliography_path = _relative_from_base(base_dir, workspace.bibliography_dir / "references.bib")
     package_path = _relative_from_base(base_dir, workspace.tex_dir / "novellum")
+    stitched_preamble_path = workspace.tex_dir / "stitched-preamble.tex"
     resolved_notes_by_id = notes_by_id or {note.metadata.id: note for note in notes}
     resolved_aliases = aliases or _build_aliases(notes)
     included_ids = {note.metadata.id for note in notes}
@@ -55,16 +56,23 @@ def render_stitched_document(
         rf"\usepackage{{{package_path}}}",
         r"\usepackage[numbers]{natbib}",
         "",
-        rf"\title{{{title}}}",
-        r"\author{}",
-        r"\date{\today}",
-        "",
-        r"\begin{document}",
-        "",
-        r"\maketitle",
-        r"\tableofcontents",
-        "",
     ]
+    if stitched_preamble_path.exists():
+        custom_preamble_path = _relative_from_base(base_dir, stitched_preamble_path)
+        lines.extend([rf"\input{{{custom_preamble_path}}}", ""])
+    lines.extend(
+        [
+            rf"\title{{{title}}}",
+            r"\author{}",
+            r"\date{\today}",
+            "",
+            r"\begin{document}",
+            "",
+            r"\maketitle",
+            r"\tableofcontents",
+            "",
+        ]
+    )
 
     for note in notes:
         lines.extend(

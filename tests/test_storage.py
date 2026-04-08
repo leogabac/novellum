@@ -18,6 +18,7 @@ def test_init_workspace_creates_novellum_structure(tmp_path: Path) -> None:
     assert (tmp_path / "bibliography" / "references.bib").exists()
     assert (tmp_path / "tex" / "workspace.tex").exists()
     assert (tmp_path / "tex" / "novellum.sty").exists()
+    assert (tmp_path / "tex" / "stitched-preamble.tex").exists()
 
 
 def test_create_note_writes_tex_file_with_comment_metadata(tmp_path: Path) -> None:

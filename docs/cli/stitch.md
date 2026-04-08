@@ -21,3 +21,10 @@ novellum stitch spectral-gap --output build/drafts/sg.tex
 
 When stitched notes link to one another, Novellum rewrites those internal links
 into clickable PDF hyperlinks in the generated document.
+
+User preamble additions for stitched documents live in `tex/stitched-preamble.tex`.
+For example:
+
+```tex
+\usepackage{physics}
+```
