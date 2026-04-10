@@ -60,8 +60,9 @@ def render_stitched_document(
         [
             rf"\usepackage{{{package_path}}}",
             r"\usepackage[numbers]{natbib}",
-            r"\providecommand{\nvstitchlink}[2]{\hyperref[#1]{\texttt{#2}}}",
-            r"\providecommand{\nvstitchlabel}[2]{\hyperref[#1]{#2\,\textsf{[note]}}}",
+            r"\providecommand{\nvstitchbox}[1]{\begingroup\setlength{\fboxsep}{1.5pt}\fcolorbox{nvlinkborder}{nvlinkfill}{\textcolor{nvlinktext}{#1}}\endgroup}",
+            r"\providecommand{\nvstitchlink}[2]{\hyperref[#1]{\nvstitchbox{#2}}}",
+            r"\providecommand{\nvstitchtext}[1]{\nvstitchbox{#1}}",
             "",
         ]
     )
@@ -180,13 +181,21 @@ def _render_note_body(
         target = match.group("target").strip()
         label = match.group("label")
         resolved = _resolve_reference(target, notes_by_id, aliases)
-        if resolved is None or resolved not in included_ids:
+        if resolved is None:
             return match.group(0)
 
-        anchor = _note_anchor(resolved)
         if label is not None:
-            return rf"\nvstitchlabel{{{anchor}}}{{{label}}}"
-        return rf"\nvstitchlink{{{anchor}}}{{{target}}}"
+            display = label
+        elif resolved in notes_by_id:
+            display = notes_by_id[resolved].metadata.title if resolved not in included_ids else rf"\texttt{{{target}}}"
+        else:
+            display = rf"\texttt{{{target}}}"
+
+        if resolved not in included_ids:
+            return rf"\nvstitchtext{{{display}}}"
+
+        anchor = _note_anchor(resolved)
+        return rf"\nvstitchlink{{{anchor}}}{{{display}}}"
 
     return LINK_PATTERN.sub(replace_link, note.body)
 
