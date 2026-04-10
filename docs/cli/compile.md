@@ -18,4 +18,5 @@ novellum compile stitched
 novellum compile build/drafts/sg.tex
 ```
 
-If `latexmk` is missing, the command fails clearly.
+Compile progress is logged through `sysentropy`, so you get status lines before
+and after the `latexmk` run. If `latexmk` is missing, the command fails clearly.

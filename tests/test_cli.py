@@ -38,6 +38,24 @@ def test_new_and_list_commands_work_in_workspace(tmp_path: Path) -> None:
     assert "spectral-gap" in list_output.getvalue()
 
 
+def test_ls_alias_lists_notes_in_workspace(tmp_path: Path) -> None:
+    """``ls`` should act as an alias for ``list``."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    with redirect_stdout(io.StringIO()):
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["ls", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert "Notes" in output.getvalue()
+    assert "spectral-gap" in output.getvalue()
+
+
 def test_show_links_and_search_commands_work(tmp_path: Path) -> None:
     """Navigation commands should work against a small hand-written graph."""
 
@@ -529,6 +547,8 @@ def test_compile_command_uses_workspace_root_by_default(tmp_path: Path, monkeypa
     ]
     assert captured["check"] is True
     assert captured["cwd"] == tmp_path
+    assert "Compiling tex/workspace.tex into build" in output.getvalue()
+    assert "latexmk tex/workspace.tex completed in" in output.getvalue()
     assert "Compiled tex/workspace.tex into build" in output.getvalue()
 
 
@@ -549,7 +569,9 @@ def test_compile_command_can_target_stitched_document(tmp_path: Path, monkeypatc
     monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/latexmk" if name == "latexmk" else None)
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    exit_code = main(["compile", "stitched", "--cwd", str(tmp_path)])
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["compile", "stitched", "--cwd", str(tmp_path)])
 
     assert exit_code == 0
     assert captured["command"] == [
@@ -560,6 +582,8 @@ def test_compile_command_can_target_stitched_document(tmp_path: Path, monkeypatc
         "stitched.tex",
     ]
     assert captured["cwd"] == tmp_path / "build"
+    assert "Compiling build/stitched.tex into build" in output.getvalue()
+    assert "Compiled build/stitched.tex into build" in output.getvalue()
 
 
 def test_compile_command_reports_missing_latexmk(tmp_path: Path, monkeypatch) -> None:

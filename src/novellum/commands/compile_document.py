@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 
+from novellum.logging import get_cli_logger, time_status
 from novellum.storage import find_workspace, load_config
 
 
@@ -30,6 +31,7 @@ def compile_command(
         Process-style exit code.
     """
 
+    logger = get_cli_logger("novellum.compile")
     workspace = find_workspace(cwd)
     latexmk = shutil.which("latexmk")
     if latexmk is None:
@@ -45,15 +47,17 @@ def compile_command(
         build_dir=workspace.build_dir,
         source_path=source_path,
     )
+    logger.info("Compiling %s into %s", display_target, display_output)
     try:
-        subprocess.run(command, check=True, cwd=command_cwd)
+        with time_status(f"latexmk {display_target}", logger):
+            subprocess.run(command, check=True, cwd=command_cwd)
     except subprocess.CalledProcessError as error:
         if source_path.name == "stitched.tex":
             message = _diagnose_stitched_compile_failure(workspace, source_path)
             if message is not None:
                 raise RuntimeError(message) from error
         raise RuntimeError(f"latexmk failed while compiling {display_target}. Check the LaTeX log for details.") from error
-    print(f"Compiled {display_target} into {display_output}")
+    logger.info("Compiled %s into %s", display_target, display_output)
     return 0
 
 

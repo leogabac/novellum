@@ -2,6 +2,7 @@
 
 `list` prints a compact table of notes with ID, type, title, link count, and
 path.
+You can also invoke it as `novellum ls`.
 
 Examples:
 

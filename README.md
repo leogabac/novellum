@@ -87,6 +87,7 @@ Inspect them:
 
 ```sh
 novellum list
+novellum ls
 novellum show
 novellum edit
 novellum show hk --no-interactive
@@ -145,6 +146,9 @@ novellum compile
 novellum compile stitched
 novellum compile build/drafts/custom.tex
 ```
+
+Compile status is emitted through `sysentropy`, so successful runs show
+logger-style progress messages before and after `latexmk`.
 
 Open the resulting PDFs:
 

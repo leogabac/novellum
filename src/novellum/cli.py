@@ -50,7 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
     new_parser.add_argument("--alias", action="append", default=None)
     new_parser.add_argument("--cwd", default=".")
 
-    list_parser = subparsers.add_parser("list", help="List notes.")
+    list_parser = subparsers.add_parser("list", aliases=["ls"], help="List notes.")
     list_parser.add_argument("--type", "-t", default=None, dest="note_type")
     list_parser.add_argument("--cwd", default=".")
 
@@ -145,7 +145,7 @@ def main(argv: list[str] | None = None) -> int:
                 alias=args.alias,
                 cwd=Path(args.cwd),
             )
-        if args.command == "list":
+        if args.command in {"list", "ls"}:
             return list_command(note_type=args.note_type, cwd=Path(args.cwd))
         if args.command == "show":
             return show_command(reference=args.reference, interactive=not args.no_interactive, cwd=Path(args.cwd))
