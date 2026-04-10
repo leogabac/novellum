@@ -321,6 +321,16 @@ def move_note(workspace: Workspace, reference: str, new_note_type: str) -> Path:
     return destination
 
 
+def delete_note(workspace: Workspace, reference: str) -> Path:
+    """Delete a note file by canonical ID."""
+
+    source_path = find_note_path_by_id(workspace, reference)
+    if source_path is None:
+        raise FileNotFoundError(f"No note found for '{reference}'.")
+    source_path.unlink()
+    return source_path
+
+
 def load_note(path: Path) -> Note:
     """Load and parse a single note file.
 

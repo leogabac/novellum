@@ -11,7 +11,6 @@ The emphasis is on features that make a growing notebook safer to maintain.
 
 Missing commands:
 
-* `delete`
 * `retag`
 * alias add and remove helpers
 
@@ -22,6 +21,7 @@ Implemented so far:
 
 * `rename`
 * `move`
+* `delete`
 
 ### Safer Graph Refactors
 

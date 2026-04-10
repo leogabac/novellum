@@ -236,6 +236,104 @@ def test_move_command_no_interactive_requires_destination_type(tmp_path: Path) -
     assert "Provide a destination note type" in error_output.getvalue()
 
 
+def test_delete_command_removes_note_with_yes_flag(tmp_path: Path) -> None:
+    """``delete --yes`` should remove the note without prompting."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["delete", "spectral-gap", "--yes", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert not (tmp_path / "notes" / "concept" / "spectral-gap.tex").exists()
+    assert "Deleted note notes/concept/spectral-gap.tex" in output.getvalue()
+
+
+def test_delete_command_can_select_and_confirm_interactively(tmp_path: Path, monkeypatch) -> None:
+    """``delete`` should support interactive note selection and confirmation."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        class Result:
+            returncode = 0
+            stdout = "spectral-gap\tconcept\tSpectral Gap\t-\n"
+
+        return Result()
+
+    class Prompt:
+        def ask(self) -> bool:
+            return True
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/fzf" if name == "fzf" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("novellum.commands.delete_note.questionary.confirm", lambda *args, **kwargs: Prompt())
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["delete", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert not (tmp_path / "notes" / "concept" / "spectral-gap.tex").exists()
+    assert "Deleted note notes/concept/spectral-gap.tex" in output.getvalue()
+
+
+def test_delete_command_no_interactive_requires_reference(tmp_path: Path) -> None:
+    """``delete --no-interactive`` should require the source note explicitly."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["delete", "--no-interactive", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Provide a note reference" in error_output.getvalue()
+
+
+def test_delete_command_no_interactive_requires_yes_flag(tmp_path: Path) -> None:
+    """``delete --no-interactive`` should require explicit confirmation."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["delete", "spectral-gap", "--no-interactive", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Pass --yes to confirm deletion" in error_output.getvalue()
+
+
+def test_delete_command_reports_cancelled_confirmation(tmp_path: Path, monkeypatch) -> None:
+    """Interactive delete should abort cleanly when confirmation is declined."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    class Prompt:
+        def ask(self) -> bool:
+            return False
+
+    monkeypatch.setattr("novellum.commands.delete_note.questionary.confirm", lambda *args, **kwargs: Prompt())
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["delete", "spectral-gap", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert (tmp_path / "notes" / "concept" / "spectral-gap.tex").exists()
+    assert "Deletion cancelled." in error_output.getvalue()
+
+
 def test_show_links_and_search_commands_work(tmp_path: Path) -> None:
     """Navigation commands should work against a small hand-written graph."""
 

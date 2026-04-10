@@ -13,6 +13,7 @@ import sys
 from novellum.commands.backlinks import backlinks_command
 from novellum.commands.broken_links import broken_command
 from novellum.commands.compile_document import compile_command
+from novellum.commands.delete_note import delete_command
 from novellum.commands.edit_note import edit_command
 from novellum.commands.graph_view import graph_command
 from novellum.commands.init import init_command
@@ -76,6 +77,12 @@ def build_parser() -> argparse.ArgumentParser:
     move_parser.add_argument("new_note_type", nargs="?")
     move_parser.add_argument("--no-interactive", action="store_true")
     move_parser.add_argument("--cwd", default=".")
+
+    delete_parser = subparsers.add_parser("delete", help="Delete a note file.")
+    delete_parser.add_argument("reference", nargs="?")
+    delete_parser.add_argument("--yes", action="store_true", dest="force")
+    delete_parser.add_argument("--no-interactive", action="store_true")
+    delete_parser.add_argument("--cwd", default=".")
 
     list_parser = subparsers.add_parser("list", aliases=["ls"], help="List notes.")
     list_parser.add_argument("--type", "-t", default=None, dest="note_type")
@@ -191,6 +198,13 @@ def main(argv: list[str] | None = None) -> int:
             return move_command(
                 reference=args.reference,
                 new_note_type=args.new_note_type,
+                interactive=not args.no_interactive,
+                cwd=Path(args.cwd),
+            )
+        if args.command == "delete":
+            return delete_command(
+                reference=args.reference,
+                force=args.force,
                 interactive=not args.no_interactive,
                 cwd=Path(args.cwd),
             )
