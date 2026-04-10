@@ -20,7 +20,9 @@ def get_cli_logger(name: str = "novellum") -> logging.Logger:
     """Return a logger suitable for user-facing CLI status messages."""
 
     if get_sysentropy_logger is not None:
-        return get_sysentropy_logger(name, level=logging.INFO)
+        logger = get_sysentropy_logger(name, level=logging.INFO)
+        _rebind_stdout_streams(logger)
+        return logger
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
@@ -29,10 +31,7 @@ def get_cli_logger(name: str = "novellum") -> logging.Logger:
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(logging.Formatter("%(message)s"))
         logger.addHandler(handler)
-    else:
-        for handler in logger.handlers:
-            if isinstance(handler, logging.StreamHandler):
-                handler.stream = sys.stdout
+    _rebind_stdout_streams(logger)
     return logger
 
 
@@ -51,3 +50,13 @@ def time_status(label: str, logger: logging.Logger) -> Iterator[None]:
     finally:
         elapsed = time.perf_counter() - started
         logger.info("%s completed in %.6fs", label, elapsed)
+
+
+def _rebind_stdout_streams(logger: logging.Logger) -> None:
+    """Point stdout-backed handlers at the current ``sys.stdout``."""
+
+    for handler in logger.handlers:
+        if isinstance(handler, logging.FileHandler):
+            continue
+        if isinstance(handler, logging.StreamHandler):
+            handler.stream = sys.stdout
