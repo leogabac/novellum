@@ -107,6 +107,9 @@ novellum graph --output build/graph.mmd
 novellum graph --render svg
 ```
 
+The plain `graph` command writes Mermaid text to stdout. File export and render
+paths print status lines instead.
+
 ### Logbook workflow
 
 Create an explicit dated log:

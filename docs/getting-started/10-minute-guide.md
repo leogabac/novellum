@@ -90,6 +90,9 @@ novellum graph --output build/graph.mmd
 novellum graph --render svg
 ```
 
+The plain graph command prints Mermaid text. Exporting or rendering prints
+status lines instead.
+
 If `fzf` is installed, commands like `show`, `edit`, `links`, `backlinks`, and
 `stitch` can prompt you interactively when you omit note IDs.
 
