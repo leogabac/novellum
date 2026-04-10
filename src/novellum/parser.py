@@ -9,7 +9,7 @@ still exposing explicit graph structure to the CLI.
 from __future__ import annotations
 
 import re
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from novellum.models import Link, Note, NoteMetadata
@@ -20,6 +20,15 @@ METADATA_END = "% novellum:end"
 LINK_PATTERN = re.compile(
     r"\\nvlink(?:\[(?P<label>[^\]]+)])?\{(?P<target>[^{}]+)\}"
 )
+
+
+@dataclass(slots=True)
+class LinkRewritePreview:
+    """A preview of one ``\\nvlink`` target rewrite in a note file."""
+
+    line_number: int
+    original: str
+    replacement: str
 
 
 def parse_note_text(text: str, path: Path) -> Note:
@@ -105,14 +114,31 @@ def rewrite_link_targets(body: str, old_target: str, new_target: str) -> tuple[s
                 return match.group(0)
 
             replacements += 1
-            label = match.group("label")
-            if label is None:
-                return f"\\nvlink{{{new_target}}}"
-            return f"\\nvlink[{label}]{{{new_target}}}"
+            return _render_link_target(match.group("label"), new_target)
 
         rewritten_lines.append(LINK_PATTERN.sub(replace_match, line))
 
     return "\n".join(rewritten_lines), replacements
+
+
+def preview_link_target_rewrites(text: str, old_target: str, new_target: str) -> list[LinkRewritePreview]:
+    """Preview exact ``\\nvlink`` substitutions in a full note file."""
+
+    previews: list[LinkRewritePreview] = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if line.lstrip().startswith("%"):
+            continue
+        for match in LINK_PATTERN.finditer(line):
+            if match.group("target").strip() != old_target:
+                continue
+            previews.append(
+                LinkRewritePreview(
+                    line_number=line_number,
+                    original=match.group(0),
+                    replacement=_render_link_target(match.group("label"), new_target),
+                )
+            )
+    return previews
 
 
 def render_note_text(metadata: NoteMetadata, body: str) -> str:
@@ -223,3 +249,11 @@ def _split_csv(value: str) -> list[str]:
     if not value.strip():
         return []
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _render_link_target(label: str | None, target: str) -> str:
+    """Render a ``\\nvlink`` command for a target and optional label."""
+
+    if label is None:
+        return f"\\nvlink{{{target}}}"
+    return f"\\nvlink[{label}]{{{target}}}"

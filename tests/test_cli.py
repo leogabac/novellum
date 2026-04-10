@@ -241,6 +241,7 @@ def test_rename_command_dry_run_previews_changes_without_writing(tmp_path: Path)
             "% novellum:end\n\n"
             "\\section{Beta}\n"
             "\\nvlink{alpha}\n"
+            "\\nvlink[Alpha label]{alpha}\n"
         ),
         encoding="utf-8",
     )
@@ -255,8 +256,10 @@ def test_rename_command_dry_run_previews_changes_without_writing(tmp_path: Path)
     assert "\\nvlink{alpha}" in inbound_path.read_text(encoding="utf-8")
     rendered = output.getvalue()
     assert "Dry run: would rename notes/concept/alpha.tex to notes/concept/gamma.tex" in rendered
-    assert "Dry run: would rewrite inbound links in 1 note(s)" in rendered
+    assert "Dry run: would rewrite 2 inbound link(s) across 1 note(s)" in rendered
     assert "notes/proof/beta.tex" in rendered
+    assert "L12: \\nvlink{alpha} -> \\nvlink{gamma}" in rendered
+    assert "L13: \\nvlink[Alpha label]{alpha} -> \\nvlink[Alpha label]{gamma}" in rendered
 
 
 def test_rename_command_no_interactive_requires_reference_and_new_id(tmp_path: Path) -> None:

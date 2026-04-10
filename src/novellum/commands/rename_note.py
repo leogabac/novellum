@@ -12,6 +12,7 @@ except ImportError:  # pragma: no cover
 
 from novellum.index import find_note, load_index
 from novellum.logging import get_cli_logger
+from novellum.parser import preview_link_target_rewrites
 from novellum.selection import select_note_reference
 from novellum.storage import find_workspace, rename_note
 
@@ -106,18 +107,37 @@ def _preview_rename(
         logger.info("Dry run: inbound link rewriting disabled")
         return
 
-    backlinks = sorted(
+    backlink_paths = sorted(
         {
-            index.notes_by_id[link.source_id].path.relative_to(workspace.root)
+            index.notes_by_id[link.source_id].path
             for link in index.backlinks.get(note.metadata.id, [])
             if link.source_id in index.notes_by_id
         },
         key=str,
     )
-    if not backlinks:
+    previews: list[tuple[Path, list[tuple[int, str, str]]]] = []
+    for path in backlink_paths:
+        matches = preview_link_target_rewrites(path.read_text(encoding="utf-8"), note.metadata.id, new_note_id)
+        if not matches:
+            continue
+        previews.append(
+            (
+                path.relative_to(workspace.root),
+                [(match.line_number, match.original, match.replacement) for match in matches],
+            )
+        )
+
+    if not previews:
         logger.info("Dry run: no inbound links would be rewritten")
         return
 
-    logger.info("Dry run: would rewrite inbound links in %d note(s)", len(backlinks))
-    for path in backlinks:
+    rewrite_count = sum(len(matches) for _, matches in previews)
+    logger.info(
+        "Dry run: would rewrite %d inbound link(s) across %d note(s)",
+        rewrite_count,
+        len(previews),
+    )
+    for path, matches in previews:
         logger.info("  %s", path)
+        for line_number, original, replacement in matches:
+            logger.info("    L%d: %s -> %s", line_number, original, replacement)

@@ -147,6 +147,7 @@ After the first 10 minutes, the normal workflow is usually:
 
 * create notes with `novellum new`
 * rename notes safely with `novellum rename old-id new-id --dry-run`
+  The dry-run preview shows exact inbound link substitutions before anything is written.
 * open the daily log with `novellum today`
 * connect notes with `\nvlink{...}`
 * inspect graph structure with `links`, `backlinks`, and `broken`

@@ -25,8 +25,8 @@ Commented example lines stay untouched. Pass `--no-rewrite-links` if you only
 want to rename the note itself.
 
 If you want a preview first, pass `--dry-run`. Novellum will show the renamed
-path and which notes would receive rewritten inbound links without changing any
-files.
+path plus the exact `\nvlink{...}` substitutions, with line numbers, without
+changing any files.
 
 Typical interactive flow:
 

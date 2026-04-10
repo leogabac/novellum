@@ -37,7 +37,6 @@ novellum rename old-id new-id
 
 Related ideas:
 
-* refactor preview
 * conflict detection before writes
 
 ### Richer Search and Filtering
