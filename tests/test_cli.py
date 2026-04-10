@@ -193,6 +193,66 @@ def test_graph_command_can_write_filtered_output(tmp_path: Path) -> None:
     assert "Beta<br/>proof :: beta" not in graph_text
 
 
+def test_graph_command_can_render_with_mermaid_cli(tmp_path: Path, monkeypatch) -> None:
+    """``graph --render`` should call ``mmdc`` and write a rendered artifact."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+
+    captured: dict[str, object] = {}
+
+    def fake_run(command: list[str], check: bool, cwd: Path) -> None:
+        captured["command"] = command
+        captured["check"] = check
+        captured["cwd"] = cwd
+        Path(command[4]).write_text("<svg></svg>", encoding="utf-8")
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/mmdc" if name == "mmdc" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["graph", "--render", "svg", "--cwd", str(tmp_path)])
+
+    graph_path = tmp_path / "build" / "graph.svg"
+    assert exit_code == 0
+    assert graph_path.exists()
+    assert captured["command"][0] == "/usr/bin/mmdc"
+    assert captured["command"][1:3] == ["-i", captured["command"][2]]
+    assert captured["command"][3:5] == ["-o", str(graph_path)]
+    assert captured["check"] is True
+    assert captured["cwd"] == tmp_path
+    assert "Rendered graph to build/graph.svg" in output.getvalue()
+
+
+def test_graph_command_reports_missing_mermaid_cli(tmp_path: Path, monkeypatch) -> None:
+    """``graph --render`` should fail clearly when ``mmdc`` is unavailable."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    monkeypatch.setattr("shutil.which", lambda name: None)
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["graph", "--render", "svg", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "mmdc is not installed" in error_output.getvalue()
+
+
 def test_backlinks_and_broken_commands_work(tmp_path: Path) -> None:
     """Dedicated diagnostics commands should expose inbound and broken links."""
 

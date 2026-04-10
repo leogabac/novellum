@@ -96,6 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     graph_parser = subparsers.add_parser("graph", help="Export the note graph as Mermaid.")
     graph_parser.add_argument("--type", "-t", default=None, dest="note_type")
+    graph_parser.add_argument("--render", choices=["svg", "png", "pdf"], default=None, dest="render_format")
     graph_parser.add_argument("--output", default=None)
     graph_parser.add_argument("--cwd", default=".")
 
@@ -185,7 +186,12 @@ def main(argv: list[str] | None = None) -> int:
             return search_command(query=args.query, cwd=Path(args.cwd))
         if args.command == "graph":
             output_path = Path(args.output) if args.output else None
-            return graph_command(note_type=args.note_type, output_path=output_path, cwd=Path(args.cwd))
+            return graph_command(
+                note_type=args.note_type,
+                render_format=args.render_format,
+                output_path=output_path,
+                cwd=Path(args.cwd),
+            )
         if args.command == "stitch":
             output_path = Path(args.output) if args.output else None
             selected_types = [

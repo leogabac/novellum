@@ -87,6 +87,7 @@ novellum backlinks lemma-poincare
 novellum broken
 novellum search poincare
 novellum graph --output build/graph.mmd
+novellum graph --render svg
 ```
 
 If `fzf` is installed, commands like `show`, `edit`, `links`, `backlinks`, and

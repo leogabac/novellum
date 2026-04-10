@@ -104,6 +104,7 @@ novellum links
 novellum backlinks
 novellum broken
 novellum graph --output build/graph.mmd
+novellum graph --render svg
 ```
 
 ### Logbook workflow
