@@ -34,6 +34,7 @@ The usual rhythm is:
 2. `novellum new` whenever a new idea deserves a real file.
 3. `novellum today` when you want the daily logbook loop.
 4. `novellum links`, `backlinks`, `broken`, and `search` when the notebook stops fitting in your head.
+   `graph` exports the resolved network as Mermaid when you want a broader view.
 5. `novellum stitch`, `compile`, and `open` when the loose scraps need to become an actual draft.
    `stitch` can work from explicit references, category flags like `--concepts`, or `--all`.
 
@@ -68,6 +69,7 @@ Start wherever you need:
 * [backlinks](backlinks.md)
 * [broken](broken.md)
 * [search](search.md)
+* [graph](graph.md)
 * [stitch](stitch.md)
 * [compile](compile.md)
 * [open](open.md)

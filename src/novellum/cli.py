@@ -14,6 +14,7 @@ from novellum.commands.backlinks import backlinks_command
 from novellum.commands.broken_links import broken_command
 from novellum.commands.compile_document import compile_command
 from novellum.commands.edit_note import edit_command
+from novellum.commands.graph_view import graph_command
 from novellum.commands.init import init_command
 from novellum.commands.links import links_command
 from novellum.commands.list_notes import list_command
@@ -92,6 +93,11 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser = subparsers.add_parser("search", help="Search notes.")
     search_parser.add_argument("query")
     search_parser.add_argument("--cwd", default=".")
+
+    graph_parser = subparsers.add_parser("graph", help="Export the note graph as Mermaid.")
+    graph_parser.add_argument("--type", "-t", default=None, dest="note_type")
+    graph_parser.add_argument("--output", default=None)
+    graph_parser.add_argument("--cwd", default=".")
 
     stitch_parser = subparsers.add_parser("stitch", help="Generate a stitched LaTeX document from notes.")
     stitch_parser.add_argument("references", nargs="*")
@@ -177,6 +183,9 @@ def main(argv: list[str] | None = None) -> int:
             return broken_command(cwd=Path(args.cwd))
         if args.command == "search":
             return search_command(query=args.query, cwd=Path(args.cwd))
+        if args.command == "graph":
+            output_path = Path(args.output) if args.output else None
+            return graph_command(note_type=args.note_type, output_path=output_path, cwd=Path(args.cwd))
         if args.command == "stitch":
             output_path = Path(args.output) if args.output else None
             selected_types = [

@@ -109,6 +109,90 @@ Mentions Poincare.
     assert "beta" in search_output.getvalue()
 
 
+def test_graph_command_renders_mermaid_graph(tmp_path: Path) -> None:
+    """``graph`` should emit a Mermaid view of resolved note links."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    note_one = """% novellum:begin
+% id: alpha
+% title: Alpha Note
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+See \\nvlink{beta}.
+"""
+    note_two = """% novellum:begin
+% id: beta
+% title: Beta Note
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(note_one, encoding="utf-8")
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(note_two, encoding="utf-8")
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["graph", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert "flowchart LR" in output.getvalue()
+    assert "Alpha Note<br/>concept :: alpha" in output.getvalue()
+    assert "Beta Note<br/>proof :: beta" in output.getvalue()
+    assert "-->" in output.getvalue()
+
+
+def test_graph_command_can_write_filtered_output(tmp_path: Path) -> None:
+    """``graph`` should support category filtering and file output."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    beta = """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+"""
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["graph", "--type", "concept", "--output", "build/graph.mmd", "--cwd", str(tmp_path)])
+
+    graph_path = tmp_path / "build" / "graph.mmd"
+    graph_text = graph_path.read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert graph_path.exists()
+    assert "build/graph.mmd" in output.getvalue()
+    assert "Alpha<br/>concept :: alpha" in graph_text
+    assert "Beta<br/>proof :: beta" not in graph_text
+
+
 def test_backlinks_and_broken_commands_work(tmp_path: Path) -> None:
     """Dedicated diagnostics commands should expose inbound and broken links."""
 

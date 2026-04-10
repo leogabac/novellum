@@ -44,6 +44,7 @@ It also exists because my patience for opening a heavy note app just to write th
 * Canonical IDs plus alias-based note resolution
 * Search across IDs, titles, tags, aliases, and body text
 * Backlinks and broken-link diagnostics
+* Mermaid graph export for the note network
 * Research log workflow with dated `log` notes and a `today` command
 * Stitched LaTeX output for selected notes or the whole workspace
 * Clickable internal note links inside stitched compiled documents
@@ -102,6 +103,7 @@ Find outgoing links, backlinks, and diagnostics:
 novellum links
 novellum backlinks
 novellum broken
+novellum graph --output build/graph.mmd
 ```
 
 ### Logbook workflow
