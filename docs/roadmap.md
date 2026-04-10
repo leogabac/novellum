@@ -19,10 +19,17 @@ Missing commands:
 The current CLI is strong at note creation and inspection, but weak at
 controlled refactors after a note already exists.
 
+Implemented so far:
+
+* `rename`
+
 ### Safer Graph Refactors
 
 Changing a note ID should be able to update inbound `\nvlink{...}` references
 across the workspace.
+
+Today, `rename` already updates the canonical note ID and backing filename, but
+it does not rewrite inbound links yet.
 
 Likely command shape:
 
@@ -62,13 +69,6 @@ Likely additions:
 * `novellum validate`
 
 ## Medium-Term Ideas
-
-### Graph Export
-
-Make a cool graph like Obsidian does... 
-
-I have never in my life found this feature to be useful whatsoever, 
-but seems to be the the _killer feature_ that tech-bros like to show-off.
 
 ### Metadata-Aware Editing
 

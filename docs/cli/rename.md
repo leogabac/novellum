@@ -17,3 +17,9 @@ type directory. If you omit the old ID, Novellum can select a note
 interactively with `fzf`. If you omit the new ID, Novellum prompts for it.
 Use `--no-interactive` for strict scripting behavior. It does not rewrite
 inbound `\nvlink{...}` references yet.
+
+Typical interactive flow:
+
+* run `novellum rename`
+* pick the existing note with `fzf`
+* enter the new canonical ID when prompted

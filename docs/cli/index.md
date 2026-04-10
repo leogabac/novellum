@@ -49,6 +49,7 @@ Commands that can prompt this way include:
 
 * `show`
 * `edit`
+* `rename`
 * `links`
 * `backlinks`
 * `stitch`
