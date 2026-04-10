@@ -50,11 +50,18 @@ def test_render_stitched_document_uses_build_relative_paths(tmp_path: Path) -> N
     assert r"\usepackage[numbers]{natbib}" in rendered
     assert r"\input{../tex/stitched-preamble.tex}" in rendered
     assert r"\title{Bundle}" in rendered
+    assert r"\tableofcontents" in rendered
+    assert r"\clearpage" in rendered
     assert r"\bibliographystyle{plainnat}" in rendered
     assert r"\bibliography{../bibliography/references}" in rendered
+    assert r"\part{Concept}" in rendered
+    assert r"\part{Proof}" in rendered
     assert r"\label{nv:note:alpha}" in rendered
     assert r"\label{nv:note:beta}" in rendered
     assert r"\nvstitchlink{nv:note:beta}{\texttt{beta}}" in rendered
+    assert rendered.index(r"\tableofcontents") < rendered.index(r"\clearpage")
+    assert rendered.index(r"\part{Concept}") < rendered.index("% note: alpha")
+    assert rendered.index(r"\part{Proof}") < rendered.index("% note: beta")
 
 
 def test_render_stitched_document_skips_missing_custom_preamble(tmp_path: Path) -> None:
@@ -256,3 +263,60 @@ def test_render_stitched_document_provides_fallback_stitch_macros(tmp_path: Path
     assert r"\providecommand{\nvstitchbox}[1]{\begingroup\setlength{\fboxsep}{1.5pt}\fcolorbox{nvlinkborder}{nvlinkfill}{\textcolor{nvlinktext}{#1}}\endgroup}" in rendered
     assert r"\providecommand{\nvstitchlink}[2]{\hyperref[#1]{\nvstitchbox{#2}}}" in rendered
     assert r"\providecommand{\nvstitchtext}[1]{\nvstitchbox{#1}}" in rendered
+
+
+def test_render_stitched_document_inserts_parts_when_note_type_changes(tmp_path: Path) -> None:
+    """Changing note type in note order should start a new stitched part."""
+
+    workspace = init_workspace(tmp_path)
+    alpha = Note(
+        path=tmp_path / "notes" / "concept" / "alpha.tex",
+        metadata=NoteMetadata(
+            id="alpha",
+            title="Alpha",
+            note_type="concept",
+            created="2026-04-03T00:00:00Z",
+            updated="2026-04-03T00:00:00Z",
+        ),
+        body="\\section{Alpha}",
+        links=[],
+    )
+    beta = Note(
+        path=tmp_path / "notes" / "proof" / "beta.tex",
+        metadata=NoteMetadata(
+            id="beta",
+            title="Beta",
+            note_type="proof",
+            created="2026-04-03T00:00:00Z",
+            updated="2026-04-03T00:00:00Z",
+        ),
+        body="\\section{Beta}",
+        links=[],
+    )
+    gamma = Note(
+        path=tmp_path / "notes" / "concept" / "gamma.tex",
+        metadata=NoteMetadata(
+            id="gamma",
+            title="Gamma",
+            note_type="concept",
+            created="2026-04-03T00:00:00Z",
+            updated="2026-04-03T00:00:00Z",
+        ),
+        body="\\section{Gamma}",
+        links=[],
+    )
+
+    rendered = render_stitched_document(
+        workspace,
+        [alpha, beta, gamma],
+        title="Bundle",
+        notes_by_id={"alpha": alpha, "beta": beta, "gamma": gamma},
+        aliases={},
+    )
+
+    assert rendered.count(r"\part{Concept}") == 2
+    assert rendered.count(r"\part{Proof}") == 1
+    assert rendered.count(r"\clearpage") >= 3
+    assert rendered.index(r"\part{Concept}") < rendered.index("% note: alpha")
+    assert rendered.index(r"\part{Proof}") < rendered.index("% note: beta")
+    assert rendered.rindex(r"\part{Concept}") < rendered.index("% note: gamma")

@@ -76,11 +76,23 @@ def render_stitched_document(
             "",
             r"\maketitle",
             r"\tableofcontents",
+            r"\clearpage",
             "",
         ]
     )
 
-    for note in notes:
+    current_note_type: str | None = None
+    for index, note in enumerate(notes):
+        if index > 0:
+            lines.extend([r"\clearpage", ""])
+        if note.metadata.note_type != current_note_type:
+            current_note_type = note.metadata.note_type
+            lines.extend(
+                [
+                    rf"\part{{{_note_type_title(current_note_type)}}}",
+                    "",
+                ]
+            )
         lines.extend(
             [
                 f"% note: {note.metadata.id}",
@@ -229,3 +241,9 @@ def _note_anchor(note_id: str) -> str:
     """Return the LaTeX anchor label for a stitched note."""
 
     return f"nv:note:{note_id}"
+
+
+def _note_type_title(note_type: str) -> str:
+    """Return a display label for stitched category part headings."""
+
+    return note_type.replace("-", " ").title()
