@@ -7,7 +7,7 @@ from pathlib import Path
 from novellum.index import find_note, load_index
 from novellum.render import write_stitched_document
 from novellum.selection import select_note_references
-from novellum.storage import find_workspace, list_notes
+from novellum.storage import find_workspace
 
 
 def stitch_command(
@@ -53,12 +53,19 @@ def stitch_command(
     if stitch_all:
         if references or selected_types:
             raise ValueError("Use either explicit note references/category flags or --all, not both.")
-        notes = list_notes(workspace)
+        notes = sorted(index.notes_by_id.values(), key=lambda note: note.path)
     else:
         notes = [find_note(index, reference) for reference in references]
         selected_ids = {note.metadata.id for note in notes}
         for note_type in selected_types:
-            for note in list_notes(workspace, note_type=note_type):
+            for note in sorted(
+                (
+                    candidate
+                    for candidate in index.notes_by_id.values()
+                    if candidate.metadata.note_type == note_type
+                ),
+                key=lambda note: note.path,
+            ):
                 if note.metadata.id in selected_ids:
                     continue
                 notes.append(note)

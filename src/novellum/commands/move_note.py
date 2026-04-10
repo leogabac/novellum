@@ -39,7 +39,12 @@ def move_command(
     if not resolved_new_type:
         raise ValueError("Provide a destination note type or keep interactive prompting enabled.")
 
-    moved_path = move_note(workspace, reference=resolved_reference, new_note_type=resolved_new_type)
+    moved_path = move_note(
+        workspace,
+        reference=resolved_reference,
+        new_note_type=resolved_new_type,
+        source_path=note.path,
+    )
     logger.info("Moved note to %s", moved_path.relative_to(workspace.root))
     return 0
 

@@ -6,7 +6,8 @@ from datetime import date
 from pathlib import Path
 
 from novellum.commands.edit_note import open_in_editor
-from novellum.storage import create_note, find_workspace, find_note_path_by_id
+from novellum.index import load_index
+from novellum.storage import create_note, find_workspace
 
 
 def today_command(cwd: Path = Path(".")) -> int:
@@ -26,7 +27,9 @@ def today_command(cwd: Path = Path(".")) -> int:
     workspace = find_workspace(cwd)
     today_value = date.today().isoformat()
     note_id = f"log-{today_value}"
-    note_path = find_note_path_by_id(workspace, note_id)
+    index = load_index(workspace)
+    existing_note = index.notes_by_id.get(note_id)
+    note_path = existing_note.path if existing_note is not None else None
 
     if note_path is None:
         note_path = create_note(

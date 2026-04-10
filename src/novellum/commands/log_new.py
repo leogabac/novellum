@@ -5,7 +5,8 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from novellum.storage import create_note, find_workspace, find_note_path_by_id, load_note
+from novellum.index import load_index
+from novellum.storage import create_note, find_workspace
 
 
 def log_new_command(
@@ -33,10 +34,10 @@ def log_new_command(
     workspace = find_workspace(cwd)
     resolved_date = _resolve_log_date(log_date)
     note_id = f"log-{resolved_date.isoformat()}"
-    existing_path = find_note_path_by_id(workspace, note_id)
-    if existing_path is not None:
-        existing_note = load_note(existing_path)
-        print(f"Log note already exists at {existing_path.relative_to(workspace.root)}")
+    index = load_index(workspace)
+    existing_note = index.notes_by_id.get(note_id)
+    if existing_note is not None:
+        print(f"Log note already exists at {existing_note.path.relative_to(workspace.root)}")
         print(f"ID: {existing_note.metadata.id}")
         return 0
 

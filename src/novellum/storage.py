@@ -250,7 +250,13 @@ def list_notes(workspace: Workspace, note_type: str | None = None) -> list[Note]
     return notes
 
 
-def rename_note(workspace: Workspace, reference: str, new_note_id: str) -> Path:
+def rename_note(
+    workspace: Workspace,
+    reference: str,
+    new_note_id: str,
+    *,
+    source_path: Path | None = None,
+) -> Path:
     """Rename a note's canonical ID and move the file to match.
 
     Parameters
@@ -275,60 +281,66 @@ def rename_note(workspace: Workspace, reference: str, new_note_id: str) -> Path:
         Raised when another note already uses the requested new ID.
     """
 
-    source_path = find_note_path_by_id(workspace, reference)
-    if source_path is None:
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference)
+    if resolved_source_path is None:
         raise FileNotFoundError(f"No note found for '{reference}'.")
 
-    note = load_note(source_path)
+    note = load_note(resolved_source_path)
     if note.metadata.id == new_note_id:
-        return source_path
+        return resolved_source_path
 
     existing_path = find_note_path_by_id(workspace, new_note_id)
-    if existing_path is not None and existing_path != source_path:
+    if existing_path is not None and existing_path != resolved_source_path:
         raise FileExistsError(f"Note ID '{new_note_id}' already exists at {existing_path.relative_to(workspace.root)}")
 
     note.metadata.id = new_note_id
     note.metadata.updated = _utc_now()
-    destination = source_path.with_name(f"{new_note_id}.tex")
+    destination = resolved_source_path.with_name(f"{new_note_id}.tex")
     destination.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
-    if destination != source_path:
-        source_path.unlink()
+    if destination != resolved_source_path:
+        resolved_source_path.unlink()
     return destination
 
 
-def move_note(workspace: Workspace, reference: str, new_note_type: str) -> Path:
+def move_note(
+    workspace: Workspace,
+    reference: str,
+    new_note_type: str,
+    *,
+    source_path: Path | None = None,
+) -> Path:
     """Move a note to a different note-type directory and update metadata."""
 
-    source_path = find_note_path_by_id(workspace, reference)
-    if source_path is None:
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference)
+    if resolved_source_path is None:
         raise FileNotFoundError(f"No note found for '{reference}'.")
 
     note_types = get_note_types(workspace)
     if new_note_type not in note_types:
         raise ValueError(f"Unknown note type '{new_note_type}'. Allowed types: {', '.join(note_types)}")
 
-    note = load_note(source_path)
+    note = load_note(resolved_source_path)
     if note.metadata.note_type == new_note_type:
-        return source_path
+        return resolved_source_path
 
     note.metadata.note_type = new_note_type
     note.metadata.updated = _utc_now()
-    destination = workspace.notes_dir / new_note_type / source_path.name
+    destination = workspace.notes_dir / new_note_type / resolved_source_path.name
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
-    if destination != source_path:
-        source_path.unlink()
+    if destination != resolved_source_path:
+        resolved_source_path.unlink()
     return destination
 
 
-def delete_note(workspace: Workspace, reference: str) -> Path:
+def delete_note(workspace: Workspace, reference: str, *, source_path: Path | None = None) -> Path:
     """Delete a note file by canonical ID."""
 
-    source_path = find_note_path_by_id(workspace, reference)
-    if source_path is None:
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference)
+    if resolved_source_path is None:
         raise FileNotFoundError(f"No note found for '{reference}'.")
-    source_path.unlink()
-    return source_path
+    resolved_source_path.unlink()
+    return resolved_source_path
 
 
 def load_note(path: Path) -> Note:

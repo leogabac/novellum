@@ -9,7 +9,7 @@ try:
 except ImportError:  # pragma: no cover
     questionary = None
 
-from novellum.index import load_index
+from novellum.index import find_note, load_index
 from novellum.logging import get_cli_logger
 from novellum.selection import select_note_reference
 from novellum.storage import find_workspace, rename_note
@@ -38,7 +38,13 @@ def rename_command(
     if not resolved_new_id:
         raise ValueError("Provide a new note ID or keep interactive prompting enabled.")
 
-    renamed_path = rename_note(workspace, reference=resolved_reference, new_note_id=resolved_new_id)
+    note = find_note(index, resolved_reference)
+    renamed_path = rename_note(
+        workspace,
+        reference=resolved_reference,
+        new_note_id=resolved_new_id,
+        source_path=note.path,
+    )
     logger.info("Renamed note to %s", renamed_path.relative_to(workspace.root))
     return 0
 

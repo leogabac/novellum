@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from novellum.index import load_index
 from novellum.output import print_empty, print_note_table
-from novellum.storage import find_workspace, list_notes
+from novellum.storage import find_workspace
 
 
 def list_command(
@@ -28,7 +29,15 @@ def list_command(
     """
 
     workspace = find_workspace(cwd)
-    notes = list_notes(workspace, note_type=note_type)
+    index = load_index(workspace)
+    notes = sorted(
+        (
+            note
+            for note in index.notes_by_id.values()
+            if note_type is None or note.metadata.note_type == note_type
+        ),
+        key=lambda note: note.path,
+    )
 
     if not notes:
         print_empty("No notes found.")
