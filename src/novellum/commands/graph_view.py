@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import shutil
@@ -71,15 +72,52 @@ def _render_graph_with_mermaid_cli(
     ) as temporary:
         temporary.write(graph_text)
         temp_path = Path(temporary.name)
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        suffix=".json",
+        prefix="novellum-mmdc-",
+        dir=output_path.parent,
+        delete=False,
+    ) as temporary:
+        json.dump(
+            {
+                "args": [
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                ]
+            },
+            temporary,
+        )
+        config_path = Path(temporary.name)
 
     try:
         logger.info("Rendering graph to %s", output_path.relative_to(workspace_root))
-        subprocess.run([mmdc, "-i", str(temp_path), "-o", str(output_path)], check=True, cwd=workspace_root)
+        subprocess.run(
+            [mmdc, "-i", str(temp_path), "-o", str(output_path), "-p", str(config_path)],
+            check=True,
+            cwd=workspace_root,
+            text=True,
+            capture_output=True,
+        )
     except subprocess.CalledProcessError as error:
-        raise RuntimeError(f"mmdc failed while rendering {output_path.name}.") from error
+        details = ""
+        stderr = (error.stderr or "").strip()
+        if stderr:
+            last_line = stderr.splitlines()[-1]
+            details = f" {last_line}"
+        raise RuntimeError(
+            f"mmdc failed while rendering {output_path.name}."
+            " Chromium may be blocked in this environment; try rendering outside a restricted sandbox."
+            f"{details}"
+        ) from error
     finally:
         try:
             os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+        try:
+            os.unlink(config_path)
         except FileNotFoundError:
             pass
 

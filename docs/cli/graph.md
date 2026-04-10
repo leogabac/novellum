@@ -21,5 +21,8 @@ novellum graph --render png --output build/graph.png
 
 Only uniquely resolved note-to-note links are included in the exported graph.
 Direct rendering requires `mmdc` from Mermaid CLI to be installed on `PATH`.
+Novellum passes a small headless Puppeteer config automatically. Very
+restricted environments may still block Chromium launch, in which case the
+command will fail with a hint and you should render outside that sandbox.
 Plain `novellum graph` writes raw Mermaid text to stdout. Using `--output` or
 `--render` prints status lines instead.

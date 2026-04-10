@@ -14,7 +14,8 @@ Missing commands:
 No remaining lifecycle command gaps from the original list.
 
 The current CLI is now much stronger at controlled refactors after a note
-already exists, but safer link-aware rewrites are still missing.
+already exists, and rename now supports default inbound-link rewrites plus
+dry-run previewing.
 
 Implemented so far:
 
@@ -22,6 +23,7 @@ Implemented so far:
 * `move`
 * `delete`
 * `retag`
+* tag add and remove helpers
 * alias add and remove helpers
 
 ### Safer Graph Refactors

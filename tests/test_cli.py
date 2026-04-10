@@ -820,10 +820,12 @@ def test_graph_command_can_render_with_mermaid_cli(tmp_path: Path, monkeypatch) 
 
     captured: dict[str, object] = {}
 
-    def fake_run(command: list[str], check: bool, cwd: Path) -> None:
+    def fake_run(command: list[str], check: bool, cwd: Path, text: bool, capture_output: bool) -> None:
         captured["command"] = command
         captured["check"] = check
         captured["cwd"] = cwd
+        captured["text"] = text
+        captured["capture_output"] = capture_output
         Path(command[4]).write_text("<svg></svg>", encoding="utf-8")
 
     monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/mmdc" if name == "mmdc" else None)
@@ -839,8 +841,11 @@ def test_graph_command_can_render_with_mermaid_cli(tmp_path: Path, monkeypatch) 
     assert captured["command"][0] == "/usr/bin/mmdc"
     assert captured["command"][1:3] == ["-i", captured["command"][2]]
     assert captured["command"][3:5] == ["-o", str(graph_path)]
+    assert captured["command"][5:7] == ["-p", captured["command"][6]]
     assert captured["check"] is True
     assert captured["cwd"] == tmp_path
+    assert captured["text"] is True
+    assert captured["capture_output"] is True
     assert "Rendered graph to build/graph.svg" in output.getvalue()
 
 
