@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from novellum.logging import get_cli_logger
 from novellum.storage import create_note, find_workspace
 
 
@@ -38,6 +39,7 @@ def new_command(
         Process-style exit code.
     """
 
+    logger = get_cli_logger("novellum.new")
     workspace = find_workspace(cwd)
     note_path = create_note(
         workspace,
@@ -47,5 +49,5 @@ def new_command(
         tags=tags,
         aliases=alias,
     )
-    print(f"Created note {note_path.relative_to(workspace.root)}")
+    logger.info("Created note %s", note_path.relative_to(workspace.root))
     return 0

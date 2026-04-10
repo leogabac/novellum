@@ -34,6 +34,7 @@ def test_new_and_list_commands_work_in_workspace(tmp_path: Path) -> None:
 
     assert new_exit_code == 0
     assert list_exit_code == 0
+    assert "Created note notes/concept/spectral-gap.tex" in new_output.getvalue()
     assert "Notes" in list_output.getvalue()
     assert "spectral-gap" in list_output.getvalue()
 

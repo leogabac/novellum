@@ -56,6 +56,8 @@ novellum log new
 ```
 
 Each note is just a `.tex` file with a metadata block at the top.
+When a note is created, Novellum prints the created path so you can jump
+straight into it if needed.
 
 Example:
 
@@ -144,6 +146,7 @@ into clickable internal PDF hyperlinks... which is really cool and took a headac
 After the first 10 minutes, the normal workflow is usually:
 
 * create notes with `novellum new`
+* rename notes safely with `novellum rename old-id new-id --dry-run`
 * open the daily log with `novellum today`
 * connect notes with `\nvlink{...}`
 * inspect graph structure with `links`, `backlinks`, and `broken`
