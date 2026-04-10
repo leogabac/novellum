@@ -46,7 +46,13 @@ def tag_add_command(
         source_path=note.path,
         index=index,
     )
-    logger.info("Added tag on %s", updated_path.relative_to(workspace.root))
+    logger.info(
+        "Added tag %s on %s (%s) at %s",
+        resolved_tag,
+        note.metadata.id,
+        note.metadata.title,
+        updated_path.relative_to(workspace.root),
+    )
     return 0
 
 
@@ -81,7 +87,13 @@ def tag_remove_command(
         source_path=note.path,
         index=index,
     )
-    logger.info("Removed tag on %s", updated_path.relative_to(workspace.root))
+    logger.info(
+        "Removed tag %s on %s (%s) at %s",
+        resolved_tag,
+        note.metadata.id,
+        note.metadata.title,
+        updated_path.relative_to(workspace.root),
+    )
     return 0
 
 

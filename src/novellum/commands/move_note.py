@@ -46,7 +46,13 @@ def move_command(
         source_path=note.path,
         index=index,
     )
-    logger.info("Moved note to %s", moved_path.relative_to(workspace.root))
+    logger.info(
+        "Moved %s (%s) to [%s] at %s",
+        note.metadata.id,
+        note.metadata.title,
+        resolved_new_type,
+        moved_path.relative_to(workspace.root),
+    )
     return 0
 
 

@@ -46,7 +46,13 @@ def retag_command(
         source_path=note.path,
         index=index,
     )
-    logger.info("Retagged note %s", updated_path.relative_to(workspace.root))
+    logger.info(
+        "Retagged %s (%s) at %s -> %s",
+        note.metadata.id,
+        note.metadata.title,
+        updated_path.relative_to(workspace.root),
+        ", ".join(resolved_tags) if resolved_tags else "(no tags)",
+    )
     return 0
 
 

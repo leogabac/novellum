@@ -46,7 +46,13 @@ def alias_add_command(
         source_path=note.path,
         index=index,
     )
-    logger.info("Added alias on %s", updated_path.relative_to(workspace.root))
+    logger.info(
+        "Added alias %s on %s (%s) at %s",
+        resolved_alias,
+        note.metadata.id,
+        note.metadata.title,
+        updated_path.relative_to(workspace.root),
+    )
     return 0
 
 
@@ -81,7 +87,13 @@ def alias_remove_command(
         source_path=note.path,
         index=index,
     )
-    logger.info("Removed alias on %s", updated_path.relative_to(workspace.root))
+    logger.info(
+        "Removed alias %s on %s (%s) at %s",
+        resolved_alias,
+        note.metadata.id,
+        note.metadata.title,
+        updated_path.relative_to(workspace.root),
+    )
     return 0
 
 

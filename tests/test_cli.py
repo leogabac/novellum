@@ -305,7 +305,7 @@ def test_move_command_updates_note_type_and_directory(tmp_path: Path) -> None:
     assert moved_path.exists()
     assert not (tmp_path / "notes" / "concept" / "spectral-gap.tex").exists()
     assert "% type: proof" in moved_text
-    assert "Moved note to notes/proof/spectral-gap.tex" in output.getvalue()
+    assert "Moved spectral-gap (Spectral Gap) to [proof] at notes/proof/spectral-gap.tex" in output.getvalue()
 
 
 def test_move_command_can_select_and_prompt_interactively(tmp_path: Path, monkeypatch) -> None:
@@ -337,7 +337,7 @@ def test_move_command_can_select_and_prompt_interactively(tmp_path: Path, monkey
     moved_path = tmp_path / "notes" / "proof" / "spectral-gap.tex"
     assert exit_code == 0
     assert moved_path.exists()
-    assert "Moved note to notes/proof/spectral-gap.tex" in output.getvalue()
+    assert "Moved spectral-gap (Spectral Gap) to [proof] at notes/proof/spectral-gap.tex" in output.getvalue()
 
 
 def test_move_command_no_interactive_requires_reference(tmp_path: Path) -> None:
@@ -491,7 +491,10 @@ def test_retag_command_updates_note_tags(tmp_path: Path) -> None:
     note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
     assert exit_code == 0
     assert "% tags: analysis, operator-theory" in note_text
-    assert "Retagged note notes/concept/spectral-gap.tex" in output.getvalue()
+    assert (
+        "Retagged spectral-gap (Spectral Gap) at notes/concept/spectral-gap.tex -> analysis, operator-theory"
+        in output.getvalue()
+    )
 
 
 def test_retag_command_can_prompt_interactively(tmp_path: Path, monkeypatch) -> None:
@@ -523,7 +526,10 @@ def test_retag_command_can_prompt_interactively(tmp_path: Path, monkeypatch) -> 
     note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
     assert exit_code == 0
     assert "% tags: analysis, operator-theory" in note_text
-    assert "Retagged note notes/concept/spectral-gap.tex" in output.getvalue()
+    assert (
+        "Retagged spectral-gap (Spectral Gap) at notes/concept/spectral-gap.tex -> analysis, operator-theory"
+        in output.getvalue()
+    )
 
 
 def test_tag_add_and_remove_commands_update_metadata(tmp_path: Path) -> None:
@@ -545,7 +551,7 @@ def test_tag_add_and_remove_commands_update_metadata(tmp_path: Path) -> None:
     note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
     assert remove_exit_code == 0
     assert "% tags: operator-theory" in note_text
-    assert "Removed tag on notes/concept/spectral-gap.tex" in output.getvalue()
+    assert "Removed tag analysis on spectral-gap (Spectral Gap) at notes/concept/spectral-gap.tex" in output.getvalue()
 
 
 def test_tag_commands_support_interactive_prompts(tmp_path: Path, monkeypatch) -> None:
@@ -587,7 +593,7 @@ def test_tag_commands_support_interactive_prompts(tmp_path: Path, monkeypatch) -
     note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
     assert remove_exit_code == 0
     assert "% tags: operator-theory" in note_text
-    assert "Removed tag on notes/concept/spectral-gap.tex" in output.getvalue()
+    assert "Removed tag analysis on spectral-gap (Spectral Gap) at notes/concept/spectral-gap.tex" in output.getvalue()
 
 
 def test_alias_add_and_remove_commands_update_metadata(tmp_path: Path) -> None:
@@ -609,7 +615,7 @@ def test_alias_add_and_remove_commands_update_metadata(tmp_path: Path) -> None:
     note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
     assert remove_exit_code == 0
     assert "% aliases: spectral" in note_text
-    assert "Removed alias on notes/concept/spectral-gap.tex" in output.getvalue()
+    assert "Removed alias sg on spectral-gap (Spectral Gap) at notes/concept/spectral-gap.tex" in output.getvalue()
 
 
 def test_alias_commands_support_interactive_prompts(tmp_path: Path, monkeypatch) -> None:
@@ -650,7 +656,7 @@ def test_alias_commands_support_interactive_prompts(tmp_path: Path, monkeypatch)
     note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
     assert remove_exit_code == 0
     assert "% aliases: spectral" in note_text
-    assert "Removed alias on notes/concept/spectral-gap.tex" in output.getvalue()
+    assert "Removed alias sg on spectral-gap (Spectral Gap) at notes/concept/spectral-gap.tex" in output.getvalue()
 
 
 def test_show_links_and_search_commands_work(tmp_path: Path) -> None:
