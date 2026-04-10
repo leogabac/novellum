@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 try:
     import questionary
@@ -14,11 +15,18 @@ from novellum.logging import get_cli_logger
 from novellum.selection import select_note_reference
 from novellum.storage import find_workspace, rename_note
 
+if TYPE_CHECKING:
+    from logging import Logger
+
+    from novellum.index import NoteIndex
+    from novellum.models import Note, Workspace
+
 
 def rename_command(
     reference: str | None = None,
     new_note_id: str | None = None,
     rewrite_links: bool = True,
+    dry_run: bool = False,
     interactive: bool = True,
     cwd: Path = Path("."),
 ) -> int:
@@ -40,6 +48,17 @@ def rename_command(
         raise ValueError("Provide a new note ID or keep interactive prompting enabled.")
 
     note = find_note(index, resolved_reference)
+    if dry_run:
+        _preview_rename(
+            workspace=workspace,
+            index=index,
+            note=note,
+            new_note_id=resolved_new_id,
+            rewrite_links=rewrite_links,
+            logger=logger,
+        )
+        return 0
+
     renamed_path = rename_note(
         workspace,
         reference=resolved_reference,
@@ -64,3 +83,41 @@ def _prompt_new_note_id(reference: str) -> str | None:
     if questionary is None:
         raise RuntimeError("questionary is not installed or not available in this environment.")
     return questionary.text("New note ID:").ask()
+
+
+def _preview_rename(
+    *,
+    workspace: Workspace,
+    index: NoteIndex,
+    note: Note,
+    new_note_id: str,
+    rewrite_links: bool,
+    logger: Logger,
+) -> None:
+    """Log a dry-run preview for rename."""
+
+    destination = note.path.with_name(f"{new_note_id}.tex")
+    logger.info(
+        "Dry run: would rename %s to %s",
+        note.path.relative_to(workspace.root),
+        destination.relative_to(workspace.root),
+    )
+    if not rewrite_links:
+        logger.info("Dry run: inbound link rewriting disabled")
+        return
+
+    backlinks = sorted(
+        {
+            index.notes_by_id[link.source_id].path.relative_to(workspace.root)
+            for link in index.backlinks.get(note.metadata.id, [])
+            if link.source_id in index.notes_by_id
+        },
+        key=str,
+    )
+    if not backlinks:
+        logger.info("Dry run: no inbound links would be rewritten")
+        return
+
+    logger.info("Dry run: would rewrite inbound links in %d note(s)", len(backlinks))
+    for path in backlinks:
+        logger.info("  %s", path)

@@ -218,6 +218,46 @@ def test_rename_command_can_skip_inbound_link_rewrites(tmp_path: Path) -> None:
     assert "rewrote inbound links" not in output.getvalue()
 
 
+def test_rename_command_dry_run_previews_changes_without_writing(tmp_path: Path) -> None:
+    """``rename --dry-run`` should preview file and link changes without applying them."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Alpha", "--type", "concept", "--id", "alpha", "--cwd", str(tmp_path)])
+        main(["new", "Beta", "--type", "proof", "--id", "beta", "--cwd", str(tmp_path)])
+
+    inbound_path = tmp_path / "notes" / "proof" / "beta.tex"
+    inbound_path.write_text(
+        (
+            "% novellum:begin\n"
+            "% id: beta\n"
+            "% title: Beta\n"
+            "% type: proof\n"
+            "% created: 2026-01-01T00:00:00Z\n"
+            "% updated: 2026-01-01T00:00:00Z\n"
+            "% tags: \n"
+            "% aliases: \n"
+            "% novellum:end\n\n"
+            "\\section{Beta}\n"
+            "\\nvlink{alpha}\n"
+        ),
+        encoding="utf-8",
+    )
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["rename", "alpha", "gamma", "--dry-run", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert (tmp_path / "notes" / "concept" / "alpha.tex").exists()
+    assert not (tmp_path / "notes" / "concept" / "gamma.tex").exists()
+    assert "\\nvlink{alpha}" in inbound_path.read_text(encoding="utf-8")
+    rendered = output.getvalue()
+    assert "Dry run: would rename notes/concept/alpha.tex to notes/concept/gamma.tex" in rendered
+    assert "Dry run: would rewrite inbound links in 1 note(s)" in rendered
+    assert "notes/proof/beta.tex" in rendered
+
+
 def test_rename_command_no_interactive_requires_reference_and_new_id(tmp_path: Path) -> None:
     """``rename --no-interactive`` should require both arguments explicitly."""
 

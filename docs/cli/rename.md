@@ -8,6 +8,7 @@ Examples:
 ```sh
 novellum rename spectral-gap spectral-gap-notes
 novellum rename spectral-gap spectral-gap-notes --no-rewrite-links
+novellum rename spectral-gap spectral-gap-notes --dry-run
 novellum rename alpha beta
 novellum rename
 novellum rename spectral-gap
@@ -22,6 +23,10 @@ By default, `rename` also rewrites inbound `\nvlink{...}` references across
 the workspace, including labeled links like `\nvlink[See this]{target}`.
 Commented example lines stay untouched. Pass `--no-rewrite-links` if you only
 want to rename the note itself.
+
+If you want a preview first, pass `--dry-run`. Novellum will show the renamed
+path and which notes would receive rewritten inbound links without changing any
+files.
 
 Typical interactive flow:
 
