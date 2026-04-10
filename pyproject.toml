@@ -13,6 +13,7 @@ authors = [
   { name = "leogabac" }
 ]
 dependencies = [
+  "rich>=13.9",
 ]
 
 [project.optional-dependencies]

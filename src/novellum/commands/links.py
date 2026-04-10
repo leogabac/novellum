@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from novellum.index import find_note, load_index
+from novellum.output import print_key_value_panel, print_link_table
 from novellum.selection import select_note_reference
 from novellum.storage import find_workspace
 
@@ -41,35 +42,49 @@ def links_command(
         raise ValueError("Provide a note reference or install fzf for interactive selection.")
     note = find_note(index, resolved_reference)
 
-    print(f"Note: {note.metadata.id}")
-    print("Outbound:")
     outbound = index.outbound[note.metadata.id]
-    if not outbound:
-        print("- none")
-    else:
-        for link in outbound:
-            if link.resolved_id is None:
-                if link.candidate_ids:
-                    joined = ", ".join(link.candidate_ids)
-                    print(f"- {link.target} [ambiguous: {joined}]")
-                else:
-                    print(f"- {link.target} [missing]")
-            else:
-                print(f"- {link.target} -> {link.resolved_id}")
-
-    print("Backlinks:")
     backlinks = index.backlinks[note.metadata.id]
-    if not backlinks:
-        print("- none")
-    else:
-        for link in backlinks:
-            print(f"- {link.source_id} -> {note.metadata.id}")
-
-    print("Broken:")
     broken = index.broken_links[note.metadata.id]
-    if not broken:
-        print("- none")
-    else:
-        for link in broken:
-            print(f"- {link.target}")
+
+    print_key_value_panel(
+        f"Links: {note.metadata.id}",
+        [
+            ("Note", note.metadata.id),
+            ("Outbound", str(len(outbound))),
+            ("Backlinks", str(len(backlinks))),
+            ("Broken", str(len(broken))),
+        ],
+    )
+
+    outbound_rows: list[tuple[str, str, str]] = []
+    for link in outbound:
+        if link.resolved_id is not None:
+            outbound_rows.append((link.target, link.resolved_id, "resolved"))
+            continue
+        if link.candidate_ids:
+            outbound_rows.append((link.target, ", ".join(link.candidate_ids), "ambiguous"))
+        else:
+            outbound_rows.append((link.target, "-", "missing"))
+    print_link_table(
+        "Outbound",
+        outbound_rows,
+        empty_message="No outbound links found.",
+        columns=["Target", "Resolved", "Kind"],
+    )
+
+    backlink_rows = [(link.source_id, note.metadata.id) for link in backlinks]
+    print_link_table(
+        "Backlinks",
+        backlink_rows,
+        empty_message="No backlinks found.",
+        columns=["Source", "Resolved"],
+    )
+
+    broken_rows = [(link.target,) for link in broken]
+    print_link_table(
+        "Broken",
+        broken_rows,
+        empty_message="No broken links found.",
+        columns=["Target"],
+    )
     return 0

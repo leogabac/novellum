@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from novellum.index import load_index
+from novellum.output import print_empty, print_link_table
 from novellum.storage import find_workspace
 
 
@@ -27,18 +28,19 @@ def broken_command(cwd: Path = Path(".")) -> int:
     has_broken = any(index.broken_links.values())
 
     if not has_broken:
-        print("No broken links found.")
+        print_empty("No broken links found.")
         return 0
 
+    rows: list[tuple[str, str, str, str]] = []
     for source_id in sorted(index.broken_links):
-        links = index.broken_links[source_id]
-        if not links:
-            continue
-        print(f"{source_id}:")
-        for link in links:
-            if link.candidate_ids:
-                joined = ", ".join(link.candidate_ids)
-                print(f"- {link.target} [ambiguous: {joined}]")
-            else:
-                print(f"- {link.target} [missing]")
+        for link in index.broken_links[source_id]:
+            status = "ambiguous" if link.candidate_ids else "missing"
+            details = ", ".join(link.candidate_ids) if link.candidate_ids else "-"
+            rows.append((source_id, link.target, status, details))
+    print_link_table(
+        "Broken Links",
+        rows,
+        empty_message="No broken links found.",
+        columns=["Source", "Target", "Kind", "Candidates"],
+    )
     return 0

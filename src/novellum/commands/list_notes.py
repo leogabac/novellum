@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from novellum.output import print_empty, print_note_table
 from novellum.storage import find_workspace, list_notes
 
 
@@ -30,20 +31,11 @@ def list_command(
     notes = list_notes(workspace, note_type=note_type)
 
     if not notes:
-        print("No notes found.")
+        print_empty("No notes found.")
         return 0
 
-    print("ID\tTYPE\tTITLE\tLINKS\tPATH")
-    for note in notes:
-        print(
-            "\t".join(
-                [
-                    note.metadata.id,
-                    note.metadata.note_type,
-                    note.metadata.title,
-                    str(len(note.links)),
-                    str(note.path.relative_to(workspace.root)),
-                ]
-            )
-        )
+    title = "Notes"
+    if note_type:
+        title = f"Notes ({note_type})"
+    print_note_table(title=title, notes=notes, workspace_root=workspace.root, include_links=True)
     return 0

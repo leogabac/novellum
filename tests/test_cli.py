@@ -34,6 +34,7 @@ def test_new_and_list_commands_work_in_workspace(tmp_path: Path) -> None:
 
     assert new_exit_code == 0
     assert list_exit_code == 0
+    assert "Notes" in list_output.getvalue()
     assert "spectral-gap" in list_output.getvalue()
 
 
@@ -84,8 +85,9 @@ Mentions Poincare.
     assert links_exit_code == 0
     assert search_exit_code == 0
     assert "Alpha Note" in show_output.getvalue()
-    assert "Backlinks:" in links_output.getvalue()
-    assert "alpha -> beta" in links_output.getvalue()
+    assert "Links: beta" in links_output.getvalue()
+    assert "alpha" in links_output.getvalue()
+    assert "beta" in links_output.getvalue()
     assert "beta" in search_output.getvalue()
 
 
@@ -154,9 +156,11 @@ See \\nvlink[Alpha Ref]{alpha}.
 
     assert backlinks_exit_code == 0
     assert broken_exit_code == 0
-    assert "beta -> alpha [Alpha Ref]" in backlinks_output.getvalue()
-    assert "- missing [missing]" in broken_output.getvalue()
-    assert "- shared [ambiguous: delta, gamma]" in broken_output.getvalue()
+    assert "Backlinks: alpha" in backlinks_output.getvalue()
+    assert "Alpha Ref" in backlinks_output.getvalue()
+    assert "missing" in broken_output.getvalue()
+    assert "shared" in broken_output.getvalue()
+    assert "delta, gamma" in broken_output.getvalue()
 
 
 def test_edit_command_opens_note_with_editor(tmp_path: Path, monkeypatch) -> None:

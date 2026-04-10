@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from novellum.index import find_note, load_index
+from novellum.output import console, print_key_value_panel
 from novellum.selection import select_note_reference
 from novellum.storage import find_workspace
 
@@ -41,13 +42,17 @@ def show_command(
         raise ValueError("Provide a note reference or install fzf for interactive selection.")
     note = find_note(index, resolved_reference)
 
-    print(f"ID: {note.metadata.id}")
-    print(f"Title: {note.metadata.title}")
-    print(f"Type: {note.metadata.note_type}")
-    print(f"Path: {note.path.relative_to(workspace.root)}")
-    print(f"Tags: {', '.join(note.metadata.tags) if note.metadata.tags else '-'}")
-    print(f"Aliases: {', '.join(note.metadata.aliases) if note.metadata.aliases else '-'}")
-    print(f"Links: {len(note.links)}")
-    print("")
-    print(note.body.rstrip())
+    print_key_value_panel(
+        f"Note: {note.metadata.id}",
+        [
+            ("ID", note.metadata.id),
+            ("Title", note.metadata.title),
+            ("Type", note.metadata.note_type),
+            ("Path", str(note.path.relative_to(workspace.root))),
+            ("Tags", ", ".join(note.metadata.tags) if note.metadata.tags else "-"),
+            ("Aliases", ", ".join(note.metadata.aliases) if note.metadata.aliases else "-"),
+            ("Links", str(len(note.links))),
+        ],
+    )
+    console.print(note.body.rstrip())
     return 0

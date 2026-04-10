@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from novellum.index import load_index, search_notes
+from novellum.output import print_empty, print_note_table
 from novellum.storage import find_workspace
 
 
@@ -29,19 +30,13 @@ def search_command(query: str, cwd: Path = Path(".")) -> int:
     matches = search_notes(index, query)
 
     if not matches:
-        print("No notes found.")
+        print_empty("No notes found.")
         return 0
 
-    print("ID\tTYPE\tTITLE\tPATH")
-    for note in matches:
-        print(
-            "\t".join(
-                [
-                    note.metadata.id,
-                    note.metadata.note_type,
-                    note.metadata.title,
-                    str(note.path.relative_to(workspace.root)),
-                ]
-            )
-        )
+    print_note_table(
+        title=f"Search Results: {query}",
+        notes=matches,
+        workspace_root=workspace.root,
+        include_links=False,
+    )
     return 0
