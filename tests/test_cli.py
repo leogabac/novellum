@@ -748,8 +748,11 @@ def test_select_command_prints_iteratively_selected_note_ids(tmp_path: Path, mon
             "[done]\tfinish\tfinish selection (2 chosen)\ttype q then enter\n",
         ]
     )
+    commands: list[list[str]] = []
 
     def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        commands.append(command)
+
         class Result:
             returncode = 0
             stdout = next(responses)
@@ -765,6 +768,10 @@ def test_select_command_prints_iteratively_selected_note_ids(tmp_path: Path, mon
 
     assert exit_code == 0
     assert output.getvalue().splitlines() == ["beta", "alpha"]
+    assert all("--height=14" in command for command in commands)
+    assert all("--layout=reverse" in command for command in commands)
+    assert all("--border=rounded" in command for command in commands)
+    assert all("--info=inline" in command for command in commands)
 
 
 def test_select_command_requires_fzf(tmp_path: Path, monkeypatch) -> None:
@@ -890,8 +897,11 @@ def test_show_uses_interactive_selection_when_reference_is_omitted(tmp_path: Pat
 \\section{Alpha}
 """
     (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    captured_command: list[str] = []
 
     def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        captured_command[:] = command
+
         class Result:
             returncode = 0
             stdout = "alpha\tconcept\tAlpha Note\t-\n"
@@ -907,6 +917,11 @@ def test_show_uses_interactive_selection_when_reference_is_omitted(tmp_path: Pat
 
     assert exit_code == 0
     assert "Alpha Note" in output.getvalue()
+    assert "--height=14" in captured_command
+    assert "--layout=reverse" in captured_command
+    assert "--border=rounded" in captured_command
+    assert "--info=inline" in captured_command
+    assert "note> " in captured_command
 
 
 def test_stitch_uses_interactive_multi_selection_when_references_are_omitted(tmp_path: Path, monkeypatch) -> None:
@@ -936,8 +951,11 @@ def test_stitch_uses_interactive_multi_selection_when_references_are_omitted(tmp
 """
     (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
     (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+    captured_command: list[str] = []
 
     def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        captured_command[:] = command
+
         class Result:
             returncode = 0
             stdout = "beta\tproof\tBeta\t-\nalpha\tconcept\tAlpha\t-\n"
@@ -952,6 +970,11 @@ def test_stitch_uses_interactive_multi_selection_when_references_are_omitted(tmp
 
     assert exit_code == 0
     assert stitched_text.index("% note: beta") < stitched_text.index("% note: alpha")
+    assert "-m" in captured_command
+    assert "--height=14" in captured_command
+    assert "--layout=reverse" in captured_command
+    assert "--border=rounded" in captured_command
+    assert "--info=inline" in captured_command
 
 
 def test_interactive_commands_warn_and_fall_back_when_fzf_is_missing(tmp_path: Path, monkeypatch) -> None:

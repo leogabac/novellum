@@ -12,7 +12,8 @@ novellum show
 ```
 
 If you omit the reference and have `fzf` installed, Novellum can prompt you
-interactively. Use `--no-interactive` if you want strict scripting behavior.
+interactively with an inline dropdown picker. Use `--no-interactive` if you
+want strict scripting behavior.
 
 What it shows:
 

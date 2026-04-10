@@ -8,6 +8,14 @@ import sys
 
 from novellum.index import NoteIndex
 
+_FZF_DROPDOWN_OPTIONS = [
+    "--height=14",
+    "--layout=reverse",
+    "--border=rounded",
+    "--info=inline",
+    "--prompt",
+]
+
 
 def select_note_reference(index: NoteIndex) -> str | None:
     """Select a single note reference via ``fzf`` when available."""
@@ -38,7 +46,11 @@ def select_note_references_iterative(index: NoteIndex) -> list[str] | None:
         lines = [_render_done_choice(len(selected_ids))]
         lines.extend(_render_note_choice(index, note_id) for note_id in remaining_ids)
         result = subprocess.run(
-            [fzf, "--with-nth=2..", "--prompt", f"select[{len(selected_ids)}]> "],
+            [
+                fzf,
+                "--with-nth=2..",
+                *_fzf_ui_options(prompt=f"select[{len(selected_ids)}]> "),
+            ],
             input="\n".join(lines),
             text=True,
             capture_output=True,
@@ -69,7 +81,7 @@ def _run_fzf(index: NoteIndex, multi: bool) -> list[str] | None:
     command = [fzf]
     if multi:
         command.append("-m")
-    command.extend(["--with-nth=2.."])
+    command.extend(["--with-nth=2..", *_fzf_ui_options(prompt="note> ")])
 
     result = subprocess.run(
         command,
@@ -96,3 +108,9 @@ def _render_done_choice(selected_count: int) -> str:
     """Render the synthetic picker entry that ends iterative selection."""
 
     return "\t".join(["[done]", "finish", f"finish selection ({selected_count} chosen)", "type q then enter"])
+
+
+def _fzf_ui_options(*, prompt: str) -> list[str]:
+    """Return a consistent inline dropdown-style ``fzf`` layout."""
+
+    return [*_FZF_DROPDOWN_OPTIONS, prompt]

@@ -92,7 +92,8 @@ If `fzf` is installed, commands like `show`, `edit`, `links`, `backlinks`, and
 `stitch` can prompt you interactively when you omit note IDs.
 
 That means you can stay in the terminal and still get a pleasant chooser,
-instead of manually remembering every note ID.
+instead of manually remembering every note ID. Novellum uses a compact dropdown
+style picker rather than the default full-screen `fzf` layout.
 
 ## 5. Use the Daily Log Flow
 
