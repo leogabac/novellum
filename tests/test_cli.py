@@ -382,7 +382,9 @@ def test_delete_command_removes_note_with_yes_flag(tmp_path: Path) -> None:
 
     assert exit_code == 0
     assert not (tmp_path / "notes" / "concept" / "spectral-gap.tex").exists()
-    assert "Deleted note notes/concept/spectral-gap.tex" in output.getvalue()
+    rendered = output.getvalue()
+    assert "Deleting spectral-gap (Spectral Gap) [concept] at notes/concept/spectral-gap.tex" in rendered
+    assert "Deleted spectral-gap (Spectral Gap) [concept] from notes/concept/spectral-gap.tex" in rendered
 
 
 def test_delete_command_can_select_and_confirm_interactively(tmp_path: Path, monkeypatch) -> None:
@@ -403,9 +405,14 @@ def test_delete_command_can_select_and_confirm_interactively(tmp_path: Path, mon
         def ask(self) -> bool:
             return True
 
+    prompts: list[str] = []
+
     monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/fzf" if name == "fzf" else None)
     monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr("novellum.commands.delete_note.questionary.confirm", lambda *args, **kwargs: Prompt())
+    monkeypatch.setattr(
+        "novellum.commands.delete_note.questionary.confirm",
+        lambda message, **kwargs: prompts.append(message) or Prompt(),
+    )
 
     output = io.StringIO()
     with redirect_stdout(output):
@@ -413,7 +420,8 @@ def test_delete_command_can_select_and_confirm_interactively(tmp_path: Path, mon
 
     assert exit_code == 0
     assert not (tmp_path / "notes" / "concept" / "spectral-gap.tex").exists()
-    assert "Deleted note notes/concept/spectral-gap.tex" in output.getvalue()
+    assert prompts == ["Delete spectral-gap (Spectral Gap) [concept] at notes/concept/spectral-gap.tex?"]
+    assert "Deleted spectral-gap (Spectral Gap) [concept] from notes/concept/spectral-gap.tex" in output.getvalue()
 
 
 def test_delete_command_no_interactive_requires_reference(tmp_path: Path) -> None:
