@@ -244,6 +244,52 @@ def list_notes(workspace: Workspace, note_type: str | None = None) -> list[Note]
     return notes
 
 
+def rename_note(workspace: Workspace, reference: str, new_note_id: str) -> Path:
+    """Rename a note's canonical ID and move the file to match.
+
+    Parameters
+    ----------
+    workspace : Workspace
+        Workspace containing the note.
+    reference : str
+        Existing canonical note ID to rename.
+    new_note_id : str
+        New canonical note ID to assign.
+
+    Returns
+    -------
+    Path
+        Path to the renamed note.
+
+    Raises
+    ------
+    FileNotFoundError
+        Raised when the referenced note does not exist.
+    FileExistsError
+        Raised when another note already uses the requested new ID.
+    """
+
+    source_path = find_note_path_by_id(workspace, reference)
+    if source_path is None:
+        raise FileNotFoundError(f"No note found for '{reference}'.")
+
+    note = load_note(source_path)
+    if note.metadata.id == new_note_id:
+        return source_path
+
+    existing_path = find_note_path_by_id(workspace, new_note_id)
+    if existing_path is not None and existing_path != source_path:
+        raise FileExistsError(f"Note ID '{new_note_id}' already exists at {existing_path.relative_to(workspace.root)}")
+
+    note.metadata.id = new_note_id
+    note.metadata.updated = _utc_now()
+    destination = source_path.with_name(f"{new_note_id}.tex")
+    destination.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
+    if destination != source_path:
+        source_path.unlink()
+    return destination
+
+
 def load_note(path: Path) -> Note:
     """Load and parse a single note file.
 

@@ -13,6 +13,7 @@ authors = [
   { name = "leogabac" }
 ]
 dependencies = [
+  "questionary>=2.0",
   "rich>=13.9",
   "sysentropy",
 ]

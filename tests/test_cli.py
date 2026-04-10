@@ -56,6 +56,104 @@ def test_ls_alias_lists_notes_in_workspace(tmp_path: Path) -> None:
     assert "spectral-gap" in output.getvalue()
 
 
+def test_rename_command_updates_note_id_and_filename(tmp_path: Path) -> None:
+    """``rename`` should move the file and update the stored metadata ID."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["rename", "spectral-gap", "spectral-gap-notes", "--cwd", str(tmp_path)])
+
+    renamed_path = tmp_path / "notes" / "concept" / "spectral-gap-notes.tex"
+    renamed_text = renamed_path.read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert renamed_path.exists()
+    assert not (tmp_path / "notes" / "concept" / "spectral-gap.tex").exists()
+    assert "% id: spectral-gap-notes" in renamed_text
+    assert "Renamed note to notes/concept/spectral-gap-notes.tex" in output.getvalue()
+
+
+def test_rename_command_can_select_and_prompt_interactively(tmp_path: Path, monkeypatch) -> None:
+    """``rename`` should support fzf selection plus questionary input."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        class Result:
+            returncode = 0
+            stdout = "spectral-gap\tconcept\tSpectral Gap\t-\n"
+
+        return Result()
+
+    class Prompt:
+        def ask(self) -> str:
+            return "spectral-gap-notes"
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/fzf" if name == "fzf" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("novellum.commands.rename_note.questionary.text", lambda *args, **kwargs: Prompt())
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["rename", "--cwd", str(tmp_path)])
+
+    renamed_path = tmp_path / "notes" / "concept" / "spectral-gap-notes.tex"
+    assert exit_code == 0
+    assert renamed_path.exists()
+    assert "Renamed note to notes/concept/spectral-gap-notes.tex" in output.getvalue()
+
+
+def test_rename_command_reports_duplicate_target_ids(tmp_path: Path) -> None:
+    """``rename`` should fail clearly when the target ID is already taken."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Alpha", "--type", "concept", "--id", "alpha", "--cwd", str(tmp_path)])
+        main(["new", "Beta", "--type", "proof", "--id", "beta", "--cwd", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["rename", "alpha", "beta", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Note ID 'beta' already exists" in error_output.getvalue()
+
+
+def test_rename_command_no_interactive_requires_reference_and_new_id(tmp_path: Path) -> None:
+    """``rename --no-interactive`` should require both arguments explicitly."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["rename", "--no-interactive", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Provide a note reference" in error_output.getvalue()
+
+
+def test_rename_command_no_interactive_requires_new_id(tmp_path: Path) -> None:
+    """``rename --no-interactive`` should fail when the new ID is omitted."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["rename", "spectral-gap", "--no-interactive", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Provide a new note ID" in error_output.getvalue()
+
+
 def test_show_links_and_search_commands_work(tmp_path: Path) -> None:
     """Navigation commands should work against a small hand-written graph."""
 

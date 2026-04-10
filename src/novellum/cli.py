@@ -21,6 +21,7 @@ from novellum.commands.list_notes import list_command
 from novellum.commands.log_new import log_new_command
 from novellum.commands.new_note import new_command
 from novellum.commands.open_document import open_command
+from novellum.commands.rename_note import rename_command
 from novellum.commands.select_notes import select_command
 from novellum.commands.search_notes import search_command
 from novellum.commands.show_note import show_command
@@ -62,6 +63,12 @@ def build_parser() -> argparse.ArgumentParser:
     new_parser.add_argument("--tag", action="append", default=None, dest="tags")
     new_parser.add_argument("--alias", action="append", default=None)
     new_parser.add_argument("--cwd", default=".")
+
+    rename_parser = subparsers.add_parser("rename", help="Rename a note ID and file.")
+    rename_parser.add_argument("reference", nargs="?")
+    rename_parser.add_argument("new_note_id", nargs="?")
+    rename_parser.add_argument("--no-interactive", action="store_true")
+    rename_parser.add_argument("--cwd", default=".")
 
     list_parser = subparsers.add_parser("list", aliases=["ls"], help="List notes.")
     list_parser.add_argument("--type", "-t", default=None, dest="note_type")
@@ -166,6 +173,13 @@ def main(argv: list[str] | None = None) -> int:
                 alias=args.alias,
                 cwd=Path(args.cwd),
             )
+        if args.command == "rename":
+            return rename_command(
+                reference=args.reference,
+                new_note_id=args.new_note_id,
+                interactive=not args.no_interactive,
+                cwd=Path(args.cwd),
+            )
         if args.command in {"list", "ls"}:
             return list_command(note_type=args.note_type, cwd=Path(args.cwd))
         if args.command == "show":
@@ -220,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "today":
             return today_command(cwd=Path(args.cwd))
         parser.error(f"Unknown command: {args.command}")
-    except (FileNotFoundError, LookupError, RuntimeError, ValueError) as error:
+    except (FileExistsError, FileNotFoundError, LookupError, RuntimeError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
     return 2

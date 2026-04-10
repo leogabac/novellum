@@ -82,6 +82,7 @@ Create notes:
 ```sh
 novellum new "Heat Kernel Experiment" --type experiment --alias hk
 novellum new "Operator Semigroup" --type concept
+novellum rename operator-semigroup operator-semigroup-notes
 ```
 
 Inspect them:

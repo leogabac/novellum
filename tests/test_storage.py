@@ -3,7 +3,7 @@
 from pathlib import Path
 import pytest
 
-from novellum.storage import create_note, find_workspace, init_workspace, list_notes
+from novellum.storage import create_note, find_workspace, init_workspace, list_notes, rename_note
 
 
 def test_init_workspace_creates_novellum_structure(tmp_path: Path) -> None:
@@ -67,3 +67,29 @@ def test_init_workspace_writes_vimtex_friendly_config(tmp_path: Path) -> None:
 
     assert 'bibliography = ["bibliography/references.bib"]' in config_text
     assert 'workspace_root = "tex/workspace.tex"' in config_text
+
+
+def test_rename_note_updates_metadata_and_filename(tmp_path: Path) -> None:
+    """Renaming should rewrite the canonical ID and move the file."""
+
+    workspace = init_workspace(tmp_path)
+    original_path = create_note(workspace, title="Alpha", note_type="concept", note_id="alpha")
+
+    renamed_path = rename_note(workspace, reference="alpha", new_note_id="beta")
+    renamed_text = renamed_path.read_text(encoding="utf-8")
+
+    assert renamed_path == tmp_path / "notes" / "concept" / "beta.tex"
+    assert not original_path.exists()
+    assert "% id: beta" in renamed_text
+    assert "\\section{Alpha}" in renamed_text
+
+
+def test_rename_note_rejects_duplicate_target_ids(tmp_path: Path) -> None:
+    """Renaming should fail when another note already owns the target ID."""
+
+    workspace = init_workspace(tmp_path)
+    create_note(workspace, title="Alpha", note_type="concept", note_id="alpha")
+    create_note(workspace, title="Beta", note_type="proof", note_id="beta")
+
+    with pytest.raises(FileExistsError, match="beta"):
+        rename_note(workspace, reference="alpha", new_note_id="beta")
