@@ -29,6 +29,7 @@ from novellum.commands.search_notes import search_command
 from novellum.commands.show_note import show_command
 from novellum.commands.stitch_notes import stitch_command
 from novellum.commands.today import today_command
+from novellum.output import set_plain_output
 from novellum.storage import DEFAULT_NOTE_TYPES
 
 
@@ -53,6 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     """
 
     parser = argparse.ArgumentParser(prog="novellum", description="A CLI for linked LaTeX research notes.")
+    parser.add_argument("--plain", action="store_true", help="Disable Rich-styled output and use plain text.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init", help="Initialize a novellum workspace.")
@@ -173,6 +175,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     try:
         args = parser.parse_args(argv)
+        set_plain_output(args.plain)
 
         # Dispatch stays explicit instead of dynamic so command wiring is easy
         # to read while the CLI surface remains small.

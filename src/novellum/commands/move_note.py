@@ -44,6 +44,7 @@ def move_command(
         reference=resolved_reference,
         new_note_type=resolved_new_type,
         source_path=note.path,
+        index=index,
     )
     logger.info("Moved note to %s", moved_path.relative_to(workspace.root))
     return 0

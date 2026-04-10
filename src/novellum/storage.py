@@ -12,9 +12,13 @@ from pathlib import Path
 import re
 import shutil
 import tomllib
+from typing import TYPE_CHECKING
 
 from novellum.models import Note, NoteMetadata, Workspace
 from novellum.parser import parse_note_text, render_note_text
+
+if TYPE_CHECKING:
+    from novellum.index import NoteIndex
 
 DEFAULT_NOTE_TYPES = ("concept", "proof", "paper", "experiment", "question", "log", "ref")
 WORKSPACE_MARKER = ".novellum"
@@ -256,6 +260,7 @@ def rename_note(
     new_note_id: str,
     *,
     source_path: Path | None = None,
+    index: NoteIndex | None = None,
 ) -> Path:
     """Rename a note's canonical ID and move the file to match.
 
@@ -281,7 +286,7 @@ def rename_note(
         Raised when another note already uses the requested new ID.
     """
 
-    resolved_source_path = source_path or find_note_path_by_id(workspace, reference)
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference, index=index)
     if resolved_source_path is None:
         raise FileNotFoundError(f"No note found for '{reference}'.")
 
@@ -289,7 +294,7 @@ def rename_note(
     if note.metadata.id == new_note_id:
         return resolved_source_path
 
-    existing_path = find_note_path_by_id(workspace, new_note_id)
+    existing_path = find_note_path_by_id(workspace, new_note_id, index=index)
     if existing_path is not None and existing_path != resolved_source_path:
         raise FileExistsError(f"Note ID '{new_note_id}' already exists at {existing_path.relative_to(workspace.root)}")
 
@@ -308,10 +313,11 @@ def move_note(
     new_note_type: str,
     *,
     source_path: Path | None = None,
+    index: NoteIndex | None = None,
 ) -> Path:
     """Move a note to a different note-type directory and update metadata."""
 
-    resolved_source_path = source_path or find_note_path_by_id(workspace, reference)
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference, index=index)
     if resolved_source_path is None:
         raise FileNotFoundError(f"No note found for '{reference}'.")
 
@@ -333,10 +339,16 @@ def move_note(
     return destination
 
 
-def delete_note(workspace: Workspace, reference: str, *, source_path: Path | None = None) -> Path:
+def delete_note(
+    workspace: Workspace,
+    reference: str,
+    *,
+    source_path: Path | None = None,
+    index: NoteIndex | None = None,
+) -> Path:
     """Delete a note file by canonical ID."""
 
-    resolved_source_path = source_path or find_note_path_by_id(workspace, reference)
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference, index=index)
     if resolved_source_path is None:
         raise FileNotFoundError(f"No note found for '{reference}'.")
     resolved_source_path.unlink()
@@ -360,7 +372,7 @@ def load_note(path: Path) -> Note:
     return parse_note_text(path.read_text(encoding="utf-8"), path=path)
 
 
-def find_note_path_by_id(workspace: Workspace, note_id: str) -> Path | None:
+def find_note_path_by_id(workspace: Workspace, note_id: str, *, index: NoteIndex | None = None) -> Path | None:
     """Find an existing note path by canonical note ID.
 
     Parameters
@@ -375,6 +387,10 @@ def find_note_path_by_id(workspace: Workspace, note_id: str) -> Path | None:
     Path or None
         Matching note path when found, otherwise ``None``.
     """
+
+    if index is not None:
+        note = index.notes_by_id.get(note_id)
+        return note.path if note is not None else None
 
     for path in sorted(workspace.notes_dir.rglob("*.tex")):
         note = load_note(path)

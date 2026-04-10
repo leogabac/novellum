@@ -41,7 +41,7 @@ def delete_command(
         if not confirmed:
             raise RuntimeError("Deletion cancelled.")
 
-    deleted_path = delete_note(workspace, resolved_reference, source_path=note.path)
+    deleted_path = delete_note(workspace, resolved_reference, source_path=note.path, index=index)
     logger.info("Deleted note %s", deleted_path.relative_to(workspace.root))
     return 0
 

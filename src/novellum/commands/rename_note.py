@@ -44,6 +44,7 @@ def rename_command(
         reference=resolved_reference,
         new_note_id=resolved_new_id,
         source_path=note.path,
+        index=index,
     )
     logger.info("Renamed note to %s", renamed_path.relative_to(workspace.root))
     return 0

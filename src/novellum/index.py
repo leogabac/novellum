@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
+from novellum.logging import get_cli_logger, perf_enabled, time_status
 from novellum.models import Link, Note, NoteMetadata, Workspace
 from novellum.storage import list_notes
 
@@ -80,6 +81,17 @@ def load_index(workspace: Workspace) -> NoteIndex:
     NoteIndex
         Cached or freshly rebuilt note graph index.
     """
+
+    if not perf_enabled():
+        return _load_index_impl(workspace)
+
+    logger = get_cli_logger("novellum.perf")
+    with time_status("load_index", logger):
+        return _load_index_impl(workspace)
+
+
+def _load_index_impl(workspace: Workspace) -> NoteIndex:
+    """Internal ``load_index`` implementation without optional timing wrappers."""
 
     cache_path = workspace.config_dir / "index.json"
     current_mtimes = _scan_note_mtimes(workspace)

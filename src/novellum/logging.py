@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import logging
+import os
 import sys
 import time
 from typing import Iterator
@@ -60,3 +61,9 @@ def _rebind_stdout_streams(logger: logging.Logger) -> None:
             continue
         if isinstance(handler, logging.StreamHandler):
             handler.stream = sys.stdout
+
+
+def perf_enabled() -> bool:
+    """Return whether lightweight performance timing logs are enabled."""
+
+    return os.getenv("NOVELLUM_PERF") == "1"

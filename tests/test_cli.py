@@ -56,6 +56,23 @@ def test_ls_alias_lists_notes_in_workspace(tmp_path: Path) -> None:
     assert "spectral-gap" in output.getvalue()
 
 
+def test_list_command_supports_plain_output(tmp_path: Path) -> None:
+    """``--plain`` should disable Rich table rendering for shared list output."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["--plain", "list", "--cwd", str(tmp_path)])
+
+    assert exit_code == 0
+    assert "Notes" in output.getvalue()
+    assert "ID\tTYPE\tTITLE\tLINKS\tPATH" in output.getvalue()
+    assert "spectral-gap" in output.getvalue()
+
+
 def test_rename_command_updates_note_id_and_filename(tmp_path: Path) -> None:
     """``rename`` should move the file and update the stored metadata ID."""
 

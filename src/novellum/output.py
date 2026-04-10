@@ -10,11 +10,22 @@ from rich.panel import Panel
 from rich.table import Table
 
 console = Console()
+_PLAIN_OUTPUT = False
+
+
+def set_plain_output(enabled: bool) -> None:
+    """Toggle simplified non-Rich rendering for shared CLI output."""
+
+    global _PLAIN_OUTPUT
+    _PLAIN_OUTPUT = enabled
 
 
 def print_empty(message: str) -> None:
     """Render a muted message for empty command results."""
 
+    if _PLAIN_OUTPUT:
+        print(message)
+        return
     console.print(f"[dim]{message}[/dim]")
 
 
@@ -26,6 +37,26 @@ def print_note_table(
     include_links: bool = True,
 ) -> None:
     """Render a note collection as a compact table plus summary."""
+
+    if _PLAIN_OUTPUT:
+        headers = ["ID", "TYPE", "TITLE"]
+        if include_links:
+            headers.append("LINKS")
+        headers.append("PATH")
+        print(title)
+        print("\t".join(headers))
+        for note in notes:
+            row = [
+                note.metadata.id,
+                note.metadata.note_type,
+                note.metadata.title,
+            ]
+            if include_links:
+                row.append(str(len(note.links)))
+            row.append(str(note.path.relative_to(workspace_root)))
+            print("\t".join(row))
+        print(f"{len(notes)} note(s)")
+        return
 
     table = Table(title=title, box=SIMPLE_HEAVY, header_style="bold cyan", row_styles=["", "dim"])
     table.add_column("ID", style="bold")
@@ -53,6 +84,12 @@ def print_note_table(
 def print_key_value_panel(title: str, rows: list[tuple[str, str]]) -> None:
     """Render key-value note metadata as a two-column table in a panel."""
 
+    if _PLAIN_OUTPUT:
+        print(title)
+        for key, value in rows:
+            print(f"{key}: {value}")
+        return
+
     table = Table.grid(padding=(0, 2))
     table.add_column(style="bold cyan", no_wrap=True)
     table.add_column(overflow="fold")
@@ -66,6 +103,13 @@ def print_link_table(title: str, rows: list[tuple[str, ...]], *, empty_message: 
 
     if not rows:
         print_empty(empty_message)
+        return
+
+    if _PLAIN_OUTPUT:
+        print(title)
+        print("\t".join(columns))
+        for row in rows:
+            print("\t".join(row))
         return
 
     table = Table(title=title, box=SIMPLE_HEAVY, header_style="bold cyan", row_styles=["", "dim"])
