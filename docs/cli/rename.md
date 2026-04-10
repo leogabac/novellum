@@ -7,6 +7,7 @@ Examples:
 
 ```sh
 novellum rename spectral-gap spectral-gap-notes
+novellum rename spectral-gap spectral-gap-notes --no-rewrite-links
 novellum rename alpha beta
 novellum rename
 novellum rename spectral-gap
@@ -15,8 +16,12 @@ novellum rename spectral-gap
 This updates the note metadata block and moves the file within its current note
 type directory. If you omit the old ID, Novellum can select a note
 interactively with `fzf`. If you omit the new ID, Novellum prompts for it.
-Use `--no-interactive` for strict scripting behavior. It does not rewrite
-inbound `\nvlink{...}` references yet.
+Use `--no-interactive` for strict scripting behavior.
+
+By default, `rename` also rewrites inbound `\nvlink{...}` references across
+the workspace, including labeled links like `\nvlink[See this]{target}`.
+Commented example lines stay untouched. Pass `--no-rewrite-links` if you only
+want to rename the note itself.
 
 Typical interactive flow:
 

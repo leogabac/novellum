@@ -106,6 +106,39 @@ def test_rename_note_rejects_duplicate_target_ids(tmp_path: Path) -> None:
         rename_note(workspace, reference="alpha", new_note_id="beta")
 
 
+def test_rename_note_can_rewrite_inbound_links(tmp_path: Path) -> None:
+    """Renaming with link rewriting should update note bodies, not comments."""
+
+    workspace = init_workspace(tmp_path)
+    create_note(workspace, title="Alpha", note_type="concept", note_id="alpha")
+    inbound_path = create_note(workspace, title="Beta", note_type="proof", note_id="beta")
+    inbound_path.write_text(
+        (
+            "% novellum:begin\n"
+            "% id: beta\n"
+            "% title: Beta\n"
+            "% type: proof\n"
+            "% created: 2026-01-01T00:00:00Z\n"
+            "% updated: 2026-01-01T00:00:00Z\n"
+            "% tags: \n"
+            "% aliases: \n"
+            "% novellum:end\n\n"
+            "\\section{Beta}\n"
+            "\\nvlink{alpha}\n"
+            "\\nvlink[Alpha label]{alpha}\n"
+            "% \\nvlink{alpha}\n"
+        ),
+        encoding="utf-8",
+    )
+
+    rename_note(workspace, reference="alpha", new_note_id="gamma", rewrite_links=True)
+
+    updated_text = inbound_path.read_text(encoding="utf-8")
+    assert "\\nvlink{gamma}" in updated_text
+    assert "\\nvlink[Alpha label]{gamma}" in updated_text
+    assert "% \\nvlink{alpha}" in updated_text
+
+
 def test_move_note_updates_metadata_and_directory(tmp_path: Path) -> None:
     """Moving should rewrite the note type and relocate the file."""
 

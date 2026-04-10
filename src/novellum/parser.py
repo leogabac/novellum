@@ -72,6 +72,49 @@ def extract_links(body: str) -> list[Link]:
     return links
 
 
+def rewrite_link_targets(body: str, old_target: str, new_target: str) -> tuple[str, int]:
+    """Rewrite ``\\nvlink`` targets in a note body while ignoring comment lines.
+
+    Parameters
+    ----------
+    body : str
+        Note body without the metadata block.
+    old_target : str
+        Existing link target to replace.
+    new_target : str
+        Replacement link target.
+
+    Returns
+    -------
+    tuple[str, int]
+        Rewritten body plus the number of link targets changed.
+    """
+
+    rewritten_lines: list[str] = []
+    replacements = 0
+
+    for line in body.splitlines():
+        if line.lstrip().startswith("%"):
+            rewritten_lines.append(line)
+            continue
+
+        def replace_match(match: re.Match[str]) -> str:
+            nonlocal replacements
+            target = match.group("target").strip()
+            if target != old_target:
+                return match.group(0)
+
+            replacements += 1
+            label = match.group("label")
+            if label is None:
+                return f"\\nvlink{{{new_target}}}"
+            return f"\\nvlink[{label}]{{{new_target}}}"
+
+        rewritten_lines.append(LINK_PATTERN.sub(replace_match, line))
+
+    return "\n".join(rewritten_lines), replacements
+
+
 def render_note_text(metadata: NoteMetadata, body: str) -> str:
     """Render a note back to disk using the Novellum metadata format.
 

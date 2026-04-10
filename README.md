@@ -83,6 +83,7 @@ Create notes:
 novellum new "Heat Kernel Experiment" --type experiment --alias hk
 novellum new "Operator Semigroup" --type concept
 novellum rename operator-semigroup operator-semigroup-notes
+novellum rename operator-semigroup-notes osg-notes --no-rewrite-links
 novellum move heat-kernel-experiment paper
 novellum delete heat-kernel-experiment --yes
 novellum retag operator-semigroup-notes --tag analysis --tag semigroup

@@ -32,7 +32,7 @@ The usual rhythm is:
 
 1. `novellum init` once.
 2. `novellum new` whenever a new idea deserves a real file.
-   `rename` is now available for controlled note-ID changes.
+   `rename` is now available for controlled note-ID changes, including optional inbound link rewrites.
    `move` can shift a note into another type directory without manual edits.
    `delete` removes a note with explicit confirmation.
    `retag` and `alias` now cover the remaining metadata edits.

@@ -142,6 +142,82 @@ def test_rename_command_reports_duplicate_target_ids(tmp_path: Path) -> None:
     assert "Note ID 'beta' already exists" in error_output.getvalue()
 
 
+def test_rename_command_rewrites_inbound_links_by_default(tmp_path: Path) -> None:
+    """``rename`` should update inbound ``\\nvlink`` targets by default."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Alpha", "--type", "concept", "--id", "alpha", "--cwd", str(tmp_path)])
+        main(["new", "Beta", "--type", "proof", "--id", "beta", "--cwd", str(tmp_path)])
+
+    inbound_path = tmp_path / "notes" / "proof" / "beta.tex"
+    inbound_path.write_text(
+        (
+            "% novellum:begin\n"
+            "% id: beta\n"
+            "% title: Beta\n"
+            "% type: proof\n"
+            "% created: 2026-01-01T00:00:00Z\n"
+            "% updated: 2026-01-01T00:00:00Z\n"
+            "% tags: \n"
+            "% aliases: \n"
+            "% novellum:end\n\n"
+            "\\section{Beta}\n"
+            "\\nvlink{alpha}\n"
+            "\\nvlink[Alpha label]{alpha}\n"
+            "% \\nvlink{alpha}\n"
+        ),
+        encoding="utf-8",
+    )
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["rename", "alpha", "gamma", "--cwd", str(tmp_path)])
+
+    updated_text = inbound_path.read_text(encoding="utf-8")
+    assert exit_code == 0
+    assert "\\nvlink{gamma}" in updated_text
+    assert "\\nvlink[Alpha label]{gamma}" in updated_text
+    assert "% \\nvlink{alpha}" in updated_text
+    assert "rewrote inbound links" in output.getvalue()
+
+
+def test_rename_command_can_skip_inbound_link_rewrites(tmp_path: Path) -> None:
+    """``rename --no-rewrite-links`` should leave inbound links unchanged."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Alpha", "--type", "concept", "--id", "alpha", "--cwd", str(tmp_path)])
+        main(["new", "Beta", "--type", "proof", "--id", "beta", "--cwd", str(tmp_path)])
+
+    inbound_path = tmp_path / "notes" / "proof" / "beta.tex"
+    inbound_path.write_text(
+        (
+            "% novellum:begin\n"
+            "% id: beta\n"
+            "% title: Beta\n"
+            "% type: proof\n"
+            "% created: 2026-01-01T00:00:00Z\n"
+            "% updated: 2026-01-01T00:00:00Z\n"
+            "% tags: \n"
+            "% aliases: \n"
+            "% novellum:end\n\n"
+            "\\section{Beta}\n"
+            "\\nvlink{alpha}\n"
+        ),
+        encoding="utf-8",
+    )
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["rename", "alpha", "gamma", "--no-rewrite-links", "--cwd", str(tmp_path)])
+
+    updated_text = inbound_path.read_text(encoding="utf-8")
+    assert exit_code == 0
+    assert "\\nvlink{alpha}" in updated_text
+    assert "rewrote inbound links" not in output.getvalue()
+
+
 def test_rename_command_no_interactive_requires_reference_and_new_id(tmp_path: Path) -> None:
     """``rename --no-interactive`` should require both arguments explicitly."""
 

@@ -92,6 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     rename_parser = subparsers.add_parser("rename", help="Rename a note ID and file.")
     rename_parser.add_argument("reference", nargs="?")
     rename_parser.add_argument("new_note_id", nargs="?")
+    rename_parser.add_argument("--no-rewrite-links", action="store_true")
     rename_parser.add_argument("--no-interactive", action="store_true")
     rename_parser.add_argument("--cwd", default=".")
 
@@ -237,6 +238,7 @@ def main(argv: list[str] | None = None) -> int:
             return rename_command(
                 reference=args.reference,
                 new_note_id=args.new_note_id,
+                rewrite_links=not args.no_rewrite_links,
                 interactive=not args.no_interactive,
                 cwd=Path(args.cwd),
             )

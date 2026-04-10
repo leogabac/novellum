@@ -18,6 +18,7 @@ from novellum.storage import find_workspace, rename_note
 def rename_command(
     reference: str | None = None,
     new_note_id: str | None = None,
+    rewrite_links: bool = True,
     interactive: bool = True,
     cwd: Path = Path("."),
 ) -> int:
@@ -43,10 +44,17 @@ def rename_command(
         workspace,
         reference=resolved_reference,
         new_note_id=resolved_new_id,
+        rewrite_links=rewrite_links,
         source_path=note.path,
         index=index,
     )
-    logger.info("Renamed note to %s", renamed_path.relative_to(workspace.root))
+    if rewrite_links:
+        logger.info(
+            "Renamed note to %s and rewrote inbound links",
+            renamed_path.relative_to(workspace.root),
+        )
+    else:
+        logger.info("Renamed note to %s", renamed_path.relative_to(workspace.root))
     return 0
 
 

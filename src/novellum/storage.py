@@ -15,7 +15,7 @@ import tomllib
 from typing import TYPE_CHECKING
 
 from novellum.models import Note, NoteMetadata, Workspace
-from novellum.parser import parse_note_text, render_note_text
+from novellum.parser import parse_note_text, render_note_text, rewrite_link_targets
 
 if TYPE_CHECKING:
     from novellum.index import NoteIndex
@@ -259,6 +259,7 @@ def rename_note(
     reference: str,
     new_note_id: str,
     *,
+    rewrite_links: bool = False,
     source_path: Path | None = None,
     index: NoteIndex | None = None,
 ) -> Path:
@@ -304,6 +305,8 @@ def rename_note(
     destination.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
     if destination != resolved_source_path:
         resolved_source_path.unlink()
+    if rewrite_links:
+        _rewrite_inbound_links(workspace, old_note_id=reference, new_note_id=new_note_id)
     return destination
 
 
@@ -524,6 +527,22 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
         seen.add(stripped)
         result.append(stripped)
     return result
+
+
+def _rewrite_inbound_links(workspace: Workspace, *, old_note_id: str, new_note_id: str) -> int:
+    """Rewrite note bodies that link to ``old_note_id``."""
+
+    updated_notes = 0
+    for path in sorted(workspace.notes_dir.rglob("*.tex")):
+        note = load_note(path)
+        rewritten_body, replacements = rewrite_link_targets(note.body, old_note_id, new_note_id)
+        if replacements == 0:
+            continue
+        note.body = rewritten_body
+        note.metadata.updated = _utc_now()
+        path.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
+        updated_notes += 1
+    return updated_notes
 
 
 def _default_config_text() -> str:

@@ -29,13 +29,10 @@ Implemented so far:
 Changing a note ID should be able to update inbound `\nvlink{...}` references
 across the workspace.
 
-Today, `rename` already updates the canonical note ID and backing filename, but
-it does not rewrite inbound links yet.
-
-Likely command shape:
+Current command shape:
 
 ```sh
-novellum rename old-id new-id --rewrite-links
+novellum rename old-id new-id
 ```
 
 Related ideas:
