@@ -85,6 +85,8 @@ novellum new "Operator Semigroup" --type concept
 novellum rename operator-semigroup operator-semigroup-notes
 novellum move heat-kernel-experiment paper
 novellum delete heat-kernel-experiment --yes
+novellum retag operator-semigroup-notes --tag analysis --tag semigroup
+novellum alias add operator-semigroup-notes osg
 novellum rename
 ```
 

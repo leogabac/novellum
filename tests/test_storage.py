@@ -3,7 +3,18 @@
 from pathlib import Path
 import pytest
 
-from novellum.storage import create_note, delete_note, find_workspace, init_workspace, list_notes, move_note, rename_note
+from novellum.storage import (
+    add_alias_note,
+    create_note,
+    delete_note,
+    find_workspace,
+    init_workspace,
+    list_notes,
+    move_note,
+    remove_alias_note,
+    rename_note,
+    retag_note,
+)
 
 
 def test_init_workspace_creates_novellum_structure(tmp_path: Path) -> None:
@@ -120,3 +131,31 @@ def test_delete_note_removes_file(tmp_path: Path) -> None:
 
     assert deleted_path == note_path
     assert not note_path.exists()
+
+
+def test_retag_note_replaces_tags(tmp_path: Path) -> None:
+    """Retagging should replace the stored tag list."""
+
+    workspace = init_workspace(tmp_path)
+    note_path = create_note(workspace, title="Alpha", note_type="concept", note_id="alpha", tags=["old"])
+
+    updated_path = retag_note(workspace, reference="alpha", tags=["analysis", "operator-theory"])
+    updated_text = updated_path.read_text(encoding="utf-8")
+
+    assert updated_path == note_path
+    assert "% tags: analysis, operator-theory" in updated_text
+
+
+def test_add_and_remove_alias_note_update_aliases(tmp_path: Path) -> None:
+    """Alias helpers should add and remove aliases in metadata."""
+
+    workspace = init_workspace(tmp_path)
+    note_path = create_note(workspace, title="Alpha", note_type="concept", note_id="alpha", aliases=["first"])
+
+    add_alias_note(workspace, reference="alpha", alias="second")
+    added_text = note_path.read_text(encoding="utf-8")
+    assert "% aliases: first, second" in added_text
+
+    remove_alias_note(workspace, reference="alpha", alias="first")
+    removed_text = note_path.read_text(encoding="utf-8")
+    assert "% aliases: second" in removed_text

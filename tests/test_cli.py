@@ -351,6 +351,120 @@ def test_delete_command_reports_cancelled_confirmation(tmp_path: Path, monkeypat
     assert "Deletion cancelled." in error_output.getvalue()
 
 
+def test_retag_command_updates_note_tags(tmp_path: Path) -> None:
+    """``retag`` should replace the note's tag list."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--tag", "old", "--cwd", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(
+            ["retag", "spectral-gap", "--tag", "analysis", "--tag", "operator-theory", "--cwd", str(tmp_path)]
+        )
+
+    note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
+    assert exit_code == 0
+    assert "% tags: analysis, operator-theory" in note_text
+    assert "Retagged note notes/concept/spectral-gap.tex" in output.getvalue()
+
+
+def test_retag_command_can_prompt_interactively(tmp_path: Path, monkeypatch) -> None:
+    """``retag`` should support interactive selection and tag prompting."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        class Result:
+            returncode = 0
+            stdout = "spectral-gap\tconcept\tSpectral Gap\t-\n"
+
+        return Result()
+
+    class Prompt:
+        def ask(self) -> str:
+            return "analysis, operator-theory"
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/fzf" if name == "fzf" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("novellum.commands.retag_note.questionary.text", lambda *args, **kwargs: Prompt())
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["retag", "--cwd", str(tmp_path)])
+
+    note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
+    assert exit_code == 0
+    assert "% tags: analysis, operator-theory" in note_text
+    assert "Retagged note notes/concept/spectral-gap.tex" in output.getvalue()
+
+
+def test_alias_add_and_remove_commands_update_metadata(tmp_path: Path) -> None:
+    """Alias helpers should update note aliases through the CLI."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--alias", "sg", "--cwd", str(tmp_path)])
+
+    with redirect_stdout(io.StringIO()):
+        add_exit_code = main(["alias", "add", "spectral-gap", "spectral", "--cwd", str(tmp_path)])
+    note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
+    assert add_exit_code == 0
+    assert "% aliases: sg, spectral" in note_text
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        remove_exit_code = main(["alias", "remove", "spectral-gap", "sg", "--cwd", str(tmp_path)])
+    note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
+    assert remove_exit_code == 0
+    assert "% aliases: spectral" in note_text
+    assert "Removed alias on notes/concept/spectral-gap.tex" in output.getvalue()
+
+
+def test_alias_commands_support_interactive_prompts(tmp_path: Path, monkeypatch) -> None:
+    """Alias add/remove should support interactive note and alias selection."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--alias", "sg", "--cwd", str(tmp_path)])
+
+    def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        class Result:
+            returncode = 0
+            stdout = "spectral-gap\tconcept\tSpectral Gap\tsg\n"
+
+        return Result()
+
+    class AddPrompt:
+        def ask(self) -> str:
+            return "spectral"
+
+    class RemovePrompt:
+        def ask(self) -> str:
+            return "sg"
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/fzf" if name == "fzf" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("novellum.commands.alias_note.questionary.text", lambda *args, **kwargs: AddPrompt())
+
+    with redirect_stdout(io.StringIO()):
+        add_exit_code = main(["alias", "add", "--cwd", str(tmp_path)])
+    assert add_exit_code == 0
+
+    monkeypatch.setattr("novellum.commands.alias_note.questionary.select", lambda *args, **kwargs: RemovePrompt())
+    output = io.StringIO()
+    with redirect_stdout(output):
+        remove_exit_code = main(["alias", "remove", "spectral-gap", "--cwd", str(tmp_path)])
+
+    note_text = (tmp_path / "notes" / "concept" / "spectral-gap.tex").read_text(encoding="utf-8")
+    assert remove_exit_code == 0
+    assert "% aliases: spectral" in note_text
+    assert "Removed alias on notes/concept/spectral-gap.tex" in output.getvalue()
+
+
 def test_show_links_and_search_commands_work(tmp_path: Path) -> None:
     """Navigation commands should work against a small hand-written graph."""
 

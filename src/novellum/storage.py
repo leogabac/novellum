@@ -355,6 +355,71 @@ def delete_note(
     return resolved_source_path
 
 
+def retag_note(
+    workspace: Workspace,
+    reference: str,
+    tags: list[str],
+    *,
+    source_path: Path | None = None,
+    index: NoteIndex | None = None,
+) -> Path:
+    """Replace a note's tag list."""
+
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference, index=index)
+    if resolved_source_path is None:
+        raise FileNotFoundError(f"No note found for '{reference}'.")
+
+    note = load_note(resolved_source_path)
+    note.metadata.tags = _dedupe_preserve_order(tags)
+    note.metadata.updated = _utc_now()
+    resolved_source_path.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
+    return resolved_source_path
+
+
+def add_alias_note(
+    workspace: Workspace,
+    reference: str,
+    alias: str,
+    *,
+    source_path: Path | None = None,
+    index: NoteIndex | None = None,
+) -> Path:
+    """Add one alias to a note if it is not already present."""
+
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference, index=index)
+    if resolved_source_path is None:
+        raise FileNotFoundError(f"No note found for '{reference}'.")
+
+    note = load_note(resolved_source_path)
+    note.metadata.aliases = _dedupe_preserve_order([*note.metadata.aliases, alias])
+    note.metadata.updated = _utc_now()
+    resolved_source_path.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
+    return resolved_source_path
+
+
+def remove_alias_note(
+    workspace: Workspace,
+    reference: str,
+    alias: str,
+    *,
+    source_path: Path | None = None,
+    index: NoteIndex | None = None,
+) -> Path:
+    """Remove one alias from a note."""
+
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference, index=index)
+    if resolved_source_path is None:
+        raise FileNotFoundError(f"No note found for '{reference}'.")
+
+    note = load_note(resolved_source_path)
+    if alias not in note.metadata.aliases:
+        raise ValueError(f"Alias '{alias}' is not present on note '{note.metadata.id}'.")
+    note.metadata.aliases = [existing for existing in note.metadata.aliases if existing != alias]
+    note.metadata.updated = _utc_now()
+    resolved_source_path.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
+    return resolved_source_path
+
+
 def load_note(path: Path) -> Note:
     """Load and parse a single note file.
 
@@ -445,6 +510,20 @@ def _utc_now() -> str:
     """Return the current UTC time in a compact ISO 8601 format."""
 
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    """Return unique non-empty strings while preserving order."""
+
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        stripped = value.strip()
+        if not stripped or stripped in seen:
+            continue
+        seen.add(stripped)
+        result.append(stripped)
+    return result
 
 
 def _default_config_text() -> str:

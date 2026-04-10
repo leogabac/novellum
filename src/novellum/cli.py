@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 
 from novellum.commands.backlinks import backlinks_command
+from novellum.commands.alias_note import alias_add_command, alias_remove_command
 from novellum.commands.broken_links import broken_command
 from novellum.commands.compile_document import compile_command
 from novellum.commands.delete_note import delete_command
@@ -24,6 +25,7 @@ from novellum.commands.move_note import move_command
 from novellum.commands.new_note import new_command
 from novellum.commands.open_document import open_command
 from novellum.commands.rename_note import rename_command
+from novellum.commands.retag_note import retag_command
 from novellum.commands.select_notes import select_command
 from novellum.commands.search_notes import search_command
 from novellum.commands.show_note import show_command
@@ -67,6 +69,25 @@ def build_parser() -> argparse.ArgumentParser:
     new_parser.add_argument("--tag", action="append", default=None, dest="tags")
     new_parser.add_argument("--alias", action="append", default=None)
     new_parser.add_argument("--cwd", default=".")
+
+    retag_parser = subparsers.add_parser("retag", help="Replace a note's tag list.")
+    retag_parser.add_argument("reference", nargs="?")
+    retag_parser.add_argument("--tag", action="append", default=None, dest="tags")
+    retag_parser.add_argument("--no-interactive", action="store_true")
+    retag_parser.add_argument("--cwd", default=".")
+
+    alias_parser = subparsers.add_parser("alias", help="Add or remove note aliases.")
+    alias_subparsers = alias_parser.add_subparsers(dest="alias_command", required=True)
+    alias_add_parser = alias_subparsers.add_parser("add", help="Add an alias to a note.")
+    alias_add_parser.add_argument("reference", nargs="?")
+    alias_add_parser.add_argument("alias_value", nargs="?")
+    alias_add_parser.add_argument("--no-interactive", action="store_true")
+    alias_add_parser.add_argument("--cwd", default=".")
+    alias_remove_parser = alias_subparsers.add_parser("remove", help="Remove an alias from a note.")
+    alias_remove_parser.add_argument("reference", nargs="?")
+    alias_remove_parser.add_argument("alias_value", nargs="?")
+    alias_remove_parser.add_argument("--no-interactive", action="store_true")
+    alias_remove_parser.add_argument("--cwd", default=".")
 
     rename_parser = subparsers.add_parser("rename", help="Rename a note ID and file.")
     rename_parser.add_argument("reference", nargs="?")
@@ -190,6 +211,28 @@ def main(argv: list[str] | None = None) -> int:
                 alias=args.alias,
                 cwd=Path(args.cwd),
             )
+        if args.command == "retag":
+            return retag_command(
+                reference=args.reference,
+                tags=args.tags,
+                interactive=not args.no_interactive,
+                cwd=Path(args.cwd),
+            )
+        if args.command == "alias":
+            if args.alias_command == "add":
+                return alias_add_command(
+                    reference=args.reference,
+                    alias=args.alias_value,
+                    interactive=not args.no_interactive,
+                    cwd=Path(args.cwd),
+                )
+            if args.alias_command == "remove":
+                return alias_remove_command(
+                    reference=args.reference,
+                    alias=args.alias_value,
+                    interactive=not args.no_interactive,
+                    cwd=Path(args.cwd),
+                )
         if args.command == "rename":
             return rename_command(
                 reference=args.reference,

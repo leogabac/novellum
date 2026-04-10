@@ -11,17 +11,18 @@ The emphasis is on features that make a growing notebook safer to maintain.
 
 Missing commands:
 
-* `retag`
-* alias add and remove helpers
+No remaining lifecycle command gaps from the original list.
 
-The current CLI is strong at note creation and inspection, but weak at
-controlled refactors after a note already exists.
+The current CLI is now much stronger at controlled refactors after a note
+already exists, but safer link-aware rewrites are still missing.
 
 Implemented so far:
 
 * `rename`
 * `move`
 * `delete`
+* `retag`
+* alias add and remove helpers
 
 ### Safer Graph Refactors
 
