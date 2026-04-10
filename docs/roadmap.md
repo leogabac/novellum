@@ -76,8 +76,8 @@ Examples:
 
 ```sh
 novellum meta set spectral-gap --title "Spectral Gap Notes"
-novellum meta add spectral-gap --tag operator-theory
-novellum meta add spectral-gap --alias sgap
+novellum tag add spectral-gap operator-theory
+novellum alias add spectral-gap sgap
 ```
 
 ### Machine-Readable Output

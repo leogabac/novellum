@@ -87,6 +87,7 @@ novellum rename operator-semigroup-notes osg-notes --no-rewrite-links
 novellum move heat-kernel-experiment paper
 novellum delete heat-kernel-experiment --yes
 novellum retag operator-semigroup-notes --tag analysis --tag semigroup
+novellum tag add operator-semigroup-notes operator-theory
 novellum alias add operator-semigroup-notes osg
 novellum rename
 ```

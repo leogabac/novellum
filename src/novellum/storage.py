@@ -379,6 +379,50 @@ def retag_note(
     return resolved_source_path
 
 
+def add_tag_note(
+    workspace: Workspace,
+    reference: str,
+    tag: str,
+    *,
+    source_path: Path | None = None,
+    index: NoteIndex | None = None,
+) -> Path:
+    """Add one tag to a note if it is not already present."""
+
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference, index=index)
+    if resolved_source_path is None:
+        raise FileNotFoundError(f"No note found for '{reference}'.")
+
+    note = load_note(resolved_source_path)
+    note.metadata.tags = _dedupe_preserve_order([*note.metadata.tags, tag])
+    note.metadata.updated = _utc_now()
+    resolved_source_path.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
+    return resolved_source_path
+
+
+def remove_tag_note(
+    workspace: Workspace,
+    reference: str,
+    tag: str,
+    *,
+    source_path: Path | None = None,
+    index: NoteIndex | None = None,
+) -> Path:
+    """Remove one tag from a note."""
+
+    resolved_source_path = source_path or find_note_path_by_id(workspace, reference, index=index)
+    if resolved_source_path is None:
+        raise FileNotFoundError(f"No note found for '{reference}'.")
+
+    note = load_note(resolved_source_path)
+    if tag not in note.metadata.tags:
+        raise ValueError(f"Tag '{tag}' is not present on note '{note.metadata.id}'.")
+    note.metadata.tags = [existing for existing in note.metadata.tags if existing != tag]
+    note.metadata.updated = _utc_now()
+    resolved_source_path.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
+    return resolved_source_path
+
+
 def add_alias_note(
     workspace: Workspace,
     reference: str,

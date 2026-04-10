@@ -30,6 +30,7 @@ from novellum.commands.select_notes import select_command
 from novellum.commands.search_notes import search_command
 from novellum.commands.show_note import show_command
 from novellum.commands.stitch_notes import stitch_command
+from novellum.commands.tag_note import tag_add_command, tag_remove_command
 from novellum.commands.today import today_command
 from novellum.output import set_plain_output
 from novellum.storage import DEFAULT_NOTE_TYPES
@@ -75,6 +76,19 @@ def build_parser() -> argparse.ArgumentParser:
     retag_parser.add_argument("--tag", action="append", default=None, dest="tags")
     retag_parser.add_argument("--no-interactive", action="store_true")
     retag_parser.add_argument("--cwd", default=".")
+
+    tag_parser = subparsers.add_parser("tag", help="Add or remove note tags.")
+    tag_subparsers = tag_parser.add_subparsers(dest="tag_command", required=True)
+    tag_add_parser = tag_subparsers.add_parser("add", help="Add a tag to a note.")
+    tag_add_parser.add_argument("reference", nargs="?")
+    tag_add_parser.add_argument("tag_value", nargs="?")
+    tag_add_parser.add_argument("--no-interactive", action="store_true")
+    tag_add_parser.add_argument("--cwd", default=".")
+    tag_remove_parser = tag_subparsers.add_parser("remove", help="Remove a tag from a note.")
+    tag_remove_parser.add_argument("reference", nargs="?")
+    tag_remove_parser.add_argument("tag_value", nargs="?")
+    tag_remove_parser.add_argument("--no-interactive", action="store_true")
+    tag_remove_parser.add_argument("--cwd", default=".")
 
     alias_parser = subparsers.add_parser("alias", help="Add or remove note aliases.")
     alias_subparsers = alias_parser.add_subparsers(dest="alias_command", required=True)
@@ -220,6 +234,21 @@ def main(argv: list[str] | None = None) -> int:
                 interactive=not args.no_interactive,
                 cwd=Path(args.cwd),
             )
+        if args.command == "tag":
+            if args.tag_command == "add":
+                return tag_add_command(
+                    reference=args.reference,
+                    tag=args.tag_value,
+                    interactive=not args.no_interactive,
+                    cwd=Path(args.cwd),
+                )
+            if args.tag_command == "remove":
+                return tag_remove_command(
+                    reference=args.reference,
+                    tag=args.tag_value,
+                    interactive=not args.no_interactive,
+                    cwd=Path(args.cwd),
+                )
         if args.command == "alias":
             if args.alias_command == "add":
                 return alias_add_command(

@@ -35,7 +35,7 @@ The usual rhythm is:
    `rename` is now available for controlled note-ID changes, including optional inbound link rewrites.
    `move` can shift a note into another type directory without manual edits.
    `delete` removes a note with explicit confirmation.
-   `retag` and `alias` now cover the remaining metadata edits.
+   `retag`, `tag`, and `alias` now cover the remaining metadata edits.
 3. `novellum today` when you want the daily logbook loop.
 4. `novellum links`, `backlinks`, `broken`, and `search` when the notebook stops fitting in your head.
    `graph` exports the resolved network as Mermaid when you want a broader view.
@@ -56,6 +56,7 @@ Commands that can prompt this way include:
 * `move`
 * `delete`
 * `retag`
+* `tag`
 * `alias`
 * `links`
 * `backlinks`
@@ -75,6 +76,7 @@ Start wherever you need:
 * [move](move.md)
 * [delete](delete.md)
 * [retag](retag.md)
+* [tag](tag.md)
 * [alias](alias.md)
 * [list](list.md)
 * [show](show.md)

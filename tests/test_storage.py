@@ -5,6 +5,7 @@ import pytest
 
 from novellum.storage import (
     add_alias_note,
+    add_tag_note,
     create_note,
     delete_note,
     find_workspace,
@@ -12,6 +13,7 @@ from novellum.storage import (
     list_notes,
     move_note,
     remove_alias_note,
+    remove_tag_note,
     rename_note,
     retag_note,
 )
@@ -192,3 +194,18 @@ def test_add_and_remove_alias_note_update_aliases(tmp_path: Path) -> None:
     remove_alias_note(workspace, reference="alpha", alias="first")
     removed_text = note_path.read_text(encoding="utf-8")
     assert "% aliases: second" in removed_text
+
+
+def test_add_and_remove_tag_note_update_tags(tmp_path: Path) -> None:
+    """Tag helpers should add and remove tags in metadata."""
+
+    workspace = init_workspace(tmp_path)
+    note_path = create_note(workspace, title="Alpha", note_type="concept", note_id="alpha", tags=["first"])
+
+    add_tag_note(workspace, reference="alpha", tag="second")
+    added_text = note_path.read_text(encoding="utf-8")
+    assert "% tags: first, second" in added_text
+
+    remove_tag_note(workspace, reference="alpha", tag="first")
+    removed_text = note_path.read_text(encoding="utf-8")
+    assert "% tags: second" in removed_text
