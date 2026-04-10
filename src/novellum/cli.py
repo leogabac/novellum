@@ -25,6 +25,18 @@ from novellum.commands.search_notes import search_command
 from novellum.commands.show_note import show_command
 from novellum.commands.stitch_notes import stitch_command
 from novellum.commands.today import today_command
+from novellum.storage import DEFAULT_NOTE_TYPES
+
+
+_STITCH_CATEGORY_FLAGS = {
+    "concept": "--concepts",
+    "proof": "--proofs",
+    "paper": "--papers",
+    "experiment": "--experiments",
+    "question": "--questions",
+    "log": "--logs",
+    "ref": "--refs",
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -84,6 +96,8 @@ def build_parser() -> argparse.ArgumentParser:
     stitch_parser = subparsers.add_parser("stitch", help="Generate a stitched LaTeX document from notes.")
     stitch_parser.add_argument("references", nargs="*")
     stitch_parser.add_argument("--all", action="store_true", dest="stitch_all")
+    for note_type in DEFAULT_NOTE_TYPES:
+        stitch_parser.add_argument(_STITCH_CATEGORY_FLAGS[note_type], action="store_true", dest=f"stitch_{note_type}")
     stitch_parser.add_argument("--no-interactive", action="store_true")
     stitch_parser.add_argument("--title", default="Novellum Stitch")
     stitch_parser.add_argument("--output", default=None)
@@ -165,9 +179,15 @@ def main(argv: list[str] | None = None) -> int:
             return search_command(query=args.query, cwd=Path(args.cwd))
         if args.command == "stitch":
             output_path = Path(args.output) if args.output else None
+            selected_types = [
+                note_type
+                for note_type in DEFAULT_NOTE_TYPES
+                if getattr(args, f"stitch_{note_type}", False)
+            ]
             return stitch_command(
                 references=args.references,
                 stitch_all=args.stitch_all,
+                note_types=selected_types,
                 interactive=not args.no_interactive,
                 title=args.title,
                 output_path=output_path,

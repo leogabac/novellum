@@ -124,6 +124,8 @@ Stitch specific notes:
 
 ```sh
 novellum stitch spectral-gap lemma-poincare --title "Analysis Draft"
+novellum stitch --concepts --proofs --title "Theory Notes"
+novellum stitch beta --concepts
 novellum stitch --title "Choose Notes Interactively"
 ```
 

@@ -117,6 +117,13 @@ novellum compile stitched
 novellum open stitched
 ```
 
+Or stitch whole categories:
+
+```sh
+novellum stitch --concepts --proofs --title "Theory Notes"
+novellum compile stitched
+```
+
 Or stitch everything:
 
 ```sh

@@ -6,6 +6,7 @@ You can:
 
 * pass explicit note references
 * use `--all`
+* stitch whole categories such as `--concepts` or `--proofs`
 * rely on interactive selection
 * set a title
 * choose a custom output path
@@ -15,6 +16,8 @@ Examples:
 ```sh
 novellum stitch spectral-gap lemma-poincare --title "Analysis Draft"
 novellum stitch --all --title "Whole Notebook"
+novellum stitch --concepts --proofs --title "Theory Notes"
+novellum stitch beta --concepts
 novellum stitch --title "Pick Notes Interactively"
 novellum stitch spectral-gap --output build/drafts/sg.tex
 ```

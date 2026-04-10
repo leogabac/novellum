@@ -35,6 +35,7 @@ The usual rhythm is:
 3. `novellum today` when you want the daily logbook loop.
 4. `novellum links`, `backlinks`, `broken`, and `search` when the notebook stops fitting in your head.
 5. `novellum stitch`, `compile`, and `open` when the loose scraps need to become an actual draft.
+   `stitch` can work from explicit references, category flags like `--concepts`, or `--all`.
 
 ## Interactive Selection
 

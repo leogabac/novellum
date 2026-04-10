@@ -477,6 +477,109 @@ def test_stitch_command_can_render_whole_workspace(tmp_path: Path) -> None:
     assert stitched_text.index("% note: gamma") < stitched_text.index("% note: beta")
 
 
+def test_stitch_command_can_render_selected_categories(tmp_path: Path) -> None:
+    """Category flags should stitch every note from the requested note types."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    beta = """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+"""
+    gamma = """% novellum:begin
+% id: gamma
+% title: Gamma
+% type: experiment
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Gamma}
+"""
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    (tmp_path / "notes" / "experiment" / "gamma.tex").write_text(gamma, encoding="utf-8")
+
+    with redirect_stdout(io.StringIO()):
+        exit_code = main(["stitch", "--concepts", "--experiments", "--cwd", str(tmp_path)])
+
+    stitched_text = (tmp_path / "build" / "stitched.tex").read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert "% note: alpha" in stitched_text
+    assert "% note: gamma" in stitched_text
+    assert "% note: beta" not in stitched_text
+    assert stitched_text.index("% note: alpha") < stitched_text.index("% note: gamma")
+
+
+def test_stitch_command_can_mix_references_with_category_flags(tmp_path: Path) -> None:
+    """Explicit references should combine with category flags without duplicates."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    alpha = """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+"""
+    beta = """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Beta}
+"""
+    gamma = """% novellum:begin
+% id: gamma
+% title: Gamma
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Gamma}
+"""
+    (tmp_path / "notes" / "proof" / "beta.tex").write_text(beta, encoding="utf-8")
+    (tmp_path / "notes" / "concept" / "alpha.tex").write_text(alpha, encoding="utf-8")
+    (tmp_path / "notes" / "concept" / "gamma.tex").write_text(gamma, encoding="utf-8")
+
+    with redirect_stdout(io.StringIO()):
+        exit_code = main(["stitch", "beta", "--concepts", "--cwd", str(tmp_path)])
+
+    stitched_text = (tmp_path / "build" / "stitched.tex").read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert stitched_text.index("% note: beta") < stitched_text.index("% note: alpha")
+    assert stitched_text.index("% note: alpha") < stitched_text.index("% note: gamma")
+    assert stitched_text.count("% note: beta") == 1
+
+
 def test_stitch_command_requires_references_or_all(tmp_path: Path) -> None:
     """``stitch`` should fail clearly when no note selection is provided."""
 
@@ -488,7 +591,7 @@ def test_stitch_command_requires_references_or_all(tmp_path: Path) -> None:
         exit_code = main(["stitch", "--cwd", str(tmp_path)])
 
     assert exit_code == 1
-    assert "Provide note references, pass --all, or install fzf" in error_output.getvalue()
+    assert "Provide note references, pass category flags, use --all, or install fzf" in error_output.getvalue()
 
 
 def test_stitch_command_rejects_references_with_all(tmp_path: Path) -> None:
@@ -514,7 +617,21 @@ def test_stitch_command_rejects_references_with_all(tmp_path: Path) -> None:
         exit_code = main(["stitch", "alpha", "--all", "--cwd", str(tmp_path)])
 
     assert exit_code == 1
-    assert "Use either explicit note references or --all" in error_output.getvalue()
+    assert "Use either explicit note references/category flags or --all" in error_output.getvalue()
+
+
+def test_stitch_command_rejects_category_flags_with_all(tmp_path: Path) -> None:
+    """``stitch`` should reject mixing category flags with ``--all``."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["stitch", "--all", "--concepts", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Use either explicit note references/category flags or --all" in error_output.getvalue()
 
 
 def test_compile_command_uses_workspace_root_by_default(tmp_path: Path, monkeypatch) -> None:
