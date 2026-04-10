@@ -147,6 +147,13 @@ def load_config(workspace: Workspace) -> dict:
     return tomllib.loads(config_path.read_text(encoding="utf-8"))
 
 
+def get_note_types(workspace: Workspace) -> tuple[str, ...]:
+    """Return the configured note types for a workspace."""
+
+    config = load_config(workspace)
+    return tuple(config["workspace"]["note_types"])
+
+
 def create_note(
     workspace: Workspace,
     title: str,
@@ -187,8 +194,7 @@ def create_note(
         workspace.
     """
 
-    config = load_config(workspace)
-    note_types = tuple(config["workspace"]["note_types"])
+    note_types = get_note_types(workspace)
     if note_type not in note_types:
         raise ValueError(f"Unknown note type '{note_type}'. Allowed types: {', '.join(note_types)}")
 
@@ -284,6 +290,31 @@ def rename_note(workspace: Workspace, reference: str, new_note_id: str) -> Path:
     note.metadata.id = new_note_id
     note.metadata.updated = _utc_now()
     destination = source_path.with_name(f"{new_note_id}.tex")
+    destination.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
+    if destination != source_path:
+        source_path.unlink()
+    return destination
+
+
+def move_note(workspace: Workspace, reference: str, new_note_type: str) -> Path:
+    """Move a note to a different note-type directory and update metadata."""
+
+    source_path = find_note_path_by_id(workspace, reference)
+    if source_path is None:
+        raise FileNotFoundError(f"No note found for '{reference}'.")
+
+    note_types = get_note_types(workspace)
+    if new_note_type not in note_types:
+        raise ValueError(f"Unknown note type '{new_note_type}'. Allowed types: {', '.join(note_types)}")
+
+    note = load_note(source_path)
+    if note.metadata.note_type == new_note_type:
+        return source_path
+
+    note.metadata.note_type = new_note_type
+    note.metadata.updated = _utc_now()
+    destination = workspace.notes_dir / new_note_type / source_path.name
+    destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(render_note_text(note.metadata, note.body), encoding="utf-8")
     if destination != source_path:
         source_path.unlink()

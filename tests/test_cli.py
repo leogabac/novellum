@@ -154,6 +154,88 @@ def test_rename_command_no_interactive_requires_new_id(tmp_path: Path) -> None:
     assert "Provide a new note ID" in error_output.getvalue()
 
 
+def test_move_command_updates_note_type_and_directory(tmp_path: Path) -> None:
+    """``move`` should relocate the note and update its metadata type."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["move", "spectral-gap", "proof", "--cwd", str(tmp_path)])
+
+    moved_path = tmp_path / "notes" / "proof" / "spectral-gap.tex"
+    moved_text = moved_path.read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert moved_path.exists()
+    assert not (tmp_path / "notes" / "concept" / "spectral-gap.tex").exists()
+    assert "% type: proof" in moved_text
+    assert "Moved note to notes/proof/spectral-gap.tex" in output.getvalue()
+
+
+def test_move_command_can_select_and_prompt_interactively(tmp_path: Path, monkeypatch) -> None:
+    """``move`` should support interactive note and destination selection."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    def fake_run(command: list[str], input: str, text: bool, capture_output: bool, check: bool):
+        class Result:
+            returncode = 0
+            stdout = "spectral-gap\tconcept\tSpectral Gap\t-\n"
+
+        return Result()
+
+    class Prompt:
+        def ask(self) -> str:
+            return "proof"
+
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/fzf" if name == "fzf" else None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("novellum.commands.move_note.questionary.select", lambda *args, **kwargs: Prompt())
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["move", "--cwd", str(tmp_path)])
+
+    moved_path = tmp_path / "notes" / "proof" / "spectral-gap.tex"
+    assert exit_code == 0
+    assert moved_path.exists()
+    assert "Moved note to notes/proof/spectral-gap.tex" in output.getvalue()
+
+
+def test_move_command_no_interactive_requires_reference(tmp_path: Path) -> None:
+    """``move --no-interactive`` should require the source note explicitly."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["move", "--no-interactive", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Provide a note reference" in error_output.getvalue()
+
+
+def test_move_command_no_interactive_requires_destination_type(tmp_path: Path) -> None:
+    """``move --no-interactive`` should require the destination type explicitly."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    error_output = io.StringIO()
+    with redirect_stderr(error_output):
+        exit_code = main(["move", "spectral-gap", "--no-interactive", "--cwd", str(tmp_path)])
+
+    assert exit_code == 1
+    assert "Provide a destination note type" in error_output.getvalue()
+
+
 def test_show_links_and_search_commands_work(tmp_path: Path) -> None:
     """Navigation commands should work against a small hand-written graph."""
 

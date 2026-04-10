@@ -33,6 +33,7 @@ The usual rhythm is:
 1. `novellum init` once.
 2. `novellum new` whenever a new idea deserves a real file.
    `rename` is now available for controlled note-ID changes.
+   `move` can shift a note into another type directory without manual edits.
 3. `novellum today` when you want the daily logbook loop.
 4. `novellum links`, `backlinks`, `broken`, and `search` when the notebook stops fitting in your head.
    `graph` exports the resolved network as Mermaid when you want a broader view.
@@ -50,6 +51,7 @@ Commands that can prompt this way include:
 * `show`
 * `edit`
 * `rename`
+* `move`
 * `links`
 * `backlinks`
 * `stitch`
@@ -65,6 +67,7 @@ Start wherever you need:
 * [init](init.md)
 * [new](new.md)
 * [rename](rename.md)
+* [move](move.md)
 * [list](list.md)
 * [show](show.md)
 * [edit](edit.md)

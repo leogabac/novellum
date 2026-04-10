@@ -19,6 +19,7 @@ from novellum.commands.init import init_command
 from novellum.commands.links import links_command
 from novellum.commands.list_notes import list_command
 from novellum.commands.log_new import log_new_command
+from novellum.commands.move_note import move_command
 from novellum.commands.new_note import new_command
 from novellum.commands.open_document import open_command
 from novellum.commands.rename_note import rename_command
@@ -69,6 +70,12 @@ def build_parser() -> argparse.ArgumentParser:
     rename_parser.add_argument("new_note_id", nargs="?")
     rename_parser.add_argument("--no-interactive", action="store_true")
     rename_parser.add_argument("--cwd", default=".")
+
+    move_parser = subparsers.add_parser("move", help="Move a note to another note type.")
+    move_parser.add_argument("reference", nargs="?")
+    move_parser.add_argument("new_note_type", nargs="?")
+    move_parser.add_argument("--no-interactive", action="store_true")
+    move_parser.add_argument("--cwd", default=".")
 
     list_parser = subparsers.add_parser("list", aliases=["ls"], help="List notes.")
     list_parser.add_argument("--type", "-t", default=None, dest="note_type")
@@ -177,6 +184,13 @@ def main(argv: list[str] | None = None) -> int:
             return rename_command(
                 reference=args.reference,
                 new_note_id=args.new_note_id,
+                interactive=not args.no_interactive,
+                cwd=Path(args.cwd),
+            )
+        if args.command == "move":
+            return move_command(
+                reference=args.reference,
+                new_note_type=args.new_note_type,
                 interactive=not args.no_interactive,
                 cwd=Path(args.cwd),
             )

@@ -3,7 +3,7 @@
 from pathlib import Path
 import pytest
 
-from novellum.storage import create_note, find_workspace, init_workspace, list_notes, rename_note
+from novellum.storage import create_note, find_workspace, init_workspace, list_notes, move_note, rename_note
 
 
 def test_init_workspace_creates_novellum_structure(tmp_path: Path) -> None:
@@ -93,3 +93,18 @@ def test_rename_note_rejects_duplicate_target_ids(tmp_path: Path) -> None:
 
     with pytest.raises(FileExistsError, match="beta"):
         rename_note(workspace, reference="alpha", new_note_id="beta")
+
+
+def test_move_note_updates_metadata_and_directory(tmp_path: Path) -> None:
+    """Moving should rewrite the note type and relocate the file."""
+
+    workspace = init_workspace(tmp_path)
+    original_path = create_note(workspace, title="Alpha", note_type="concept", note_id="alpha")
+
+    moved_path = move_note(workspace, reference="alpha", new_note_type="proof")
+    moved_text = moved_path.read_text(encoding="utf-8")
+
+    assert moved_path == tmp_path / "notes" / "proof" / "alpha.tex"
+    assert not original_path.exists()
+    assert "% type: proof" in moved_text
+    assert "\\section{Alpha}" in moved_text
