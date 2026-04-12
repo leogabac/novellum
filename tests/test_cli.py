@@ -2,10 +2,17 @@
 
 import io
 from contextlib import redirect_stderr, redirect_stdout
+import json
 from pathlib import Path
 import subprocess
 
 from novellum.cli import main
+
+
+def write_note(path: Path, text: str) -> None:
+    """Write a note fixture to disk."""
+
+    path.write_text(text, encoding="utf-8")
 
 
 def test_init_command_creates_workspace(tmp_path: Path) -> None:
@@ -72,6 +79,205 @@ def test_list_command_supports_plain_output(tmp_path: Path) -> None:
     assert "Notes" in output.getvalue()
     assert "ID\tTYPE\tTITLE\tLINKS\tPATH" in output.getvalue()
     assert "spectral-gap" in output.getvalue()
+
+
+def test_list_command_supports_json_output(tmp_path: Path) -> None:
+    """``list --json`` should emit machine-readable note records."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["--json", "list", "--cwd", str(tmp_path)])
+
+    payload = json.loads(output.getvalue())
+    assert exit_code == 0
+    assert payload["ok"] is True
+    assert payload["command"] == "list"
+    assert payload["notes"][0]["id"] == "spectral-gap"
+    assert payload["notes"][0]["path"] == "notes/concept/spectral-gap.tex"
+    assert payload["notes"][0]["link_count"] == 0
+
+
+def test_show_command_supports_json_output(tmp_path: Path) -> None:
+    """``show --json`` should include the resolved note body and metadata."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    note_path = tmp_path / "notes" / "concept" / "alpha.tex"
+    write_note(
+        note_path,
+        """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% tags: analysis
+% aliases: first
+% novellum:end
+
+\\section{Alpha}
+Body text.
+""",
+    )
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["--json", "show", "alpha", "--cwd", str(tmp_path)])
+
+    payload = json.loads(output.getvalue())
+    assert exit_code == 0
+    assert payload["ok"] is True
+    assert payload["command"] == "show"
+    assert payload["note"]["id"] == "alpha"
+    assert payload["note"]["aliases"] == ["first"]
+    assert payload["note"]["body"] == "\\section{Alpha}\nBody text."
+
+
+def test_graph_query_commands_support_json_output(tmp_path: Path) -> None:
+    """Graph-oriented read commands should expose stable JSON payloads."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    write_note(
+        tmp_path / "notes" / "concept" / "alpha.tex",
+        """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% novellum:end
+
+\\section{Alpha}
+See \\nvlink[Beta Label]{beta}, \\nvlink{missing}, and \\nvlink{shared}.
+""",
+    )
+    write_note(
+        tmp_path / "notes" / "proof" / "beta.tex",
+        """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% aliases: shared
+% novellum:end
+
+\\section{Beta}
+See \\nvlink{alpha}.
+""",
+    )
+    write_note(
+        tmp_path / "notes" / "experiment" / "gamma.tex",
+        """% novellum:begin
+% id: gamma
+% title: Gamma
+% type: experiment
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% aliases: shared
+% novellum:end
+
+\\section{Gamma}
+""",
+    )
+
+    links_output = io.StringIO()
+    backlinks_output = io.StringIO()
+    broken_output = io.StringIO()
+
+    with redirect_stdout(links_output):
+        links_exit_code = main(["--json", "links", "alpha", "--cwd", str(tmp_path)])
+    with redirect_stdout(backlinks_output):
+        backlinks_exit_code = main(["--json", "backlinks", "alpha", "--cwd", str(tmp_path)])
+    with redirect_stdout(broken_output):
+        broken_exit_code = main(["--json", "broken", "--cwd", str(tmp_path)])
+
+    links_payload = json.loads(links_output.getvalue())
+    backlinks_payload = json.loads(backlinks_output.getvalue())
+    broken_payload = json.loads(broken_output.getvalue())
+
+    assert links_exit_code == 0
+    assert backlinks_exit_code == 0
+    assert broken_exit_code == 0
+    assert [item["kind"] for item in links_payload["outbound"]] == ["resolved", "missing", "ambiguous"]
+    assert links_payload["backlinks"][0]["source_id"] == "beta"
+    assert backlinks_payload["backlinks"][0]["label"] is None
+    assert sorted(item["kind"] for item in broken_payload["links"]) == ["ambiguous", "missing"]
+
+
+def test_search_command_supports_json_output(tmp_path: Path) -> None:
+    """``search --json`` should return matching note records."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+        main(["new", "Spectral Gap", "--type", "concept", "--cwd", str(tmp_path)])
+
+    output = io.StringIO()
+    with redirect_stdout(output):
+        exit_code = main(["--json", "search", "spectral", "--cwd", str(tmp_path)])
+
+    payload = json.loads(output.getvalue())
+    assert exit_code == 0
+    assert payload["ok"] is True
+    assert payload["command"] == "search"
+    assert payload["query"] == "spectral"
+    assert payload["notes"][0]["id"] == "spectral-gap"
+    assert "link_count" not in payload["notes"][0]
+
+
+def test_json_output_reports_structured_errors(tmp_path: Path) -> None:
+    """``--json`` should emit a structured error payload on command failure."""
+
+    with redirect_stdout(io.StringIO()):
+        main(["init", str(tmp_path)])
+
+    write_note(
+        tmp_path / "notes" / "concept" / "alpha.tex",
+        """% novellum:begin
+% id: alpha
+% title: Alpha
+% type: concept
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% aliases: shared
+% novellum:end
+
+\\section{Alpha}
+""",
+    )
+    write_note(
+        tmp_path / "notes" / "proof" / "beta.tex",
+        """% novellum:begin
+% id: beta
+% title: Beta
+% type: proof
+% created: 2026-04-03T00:00:00Z
+% updated: 2026-04-03T00:00:00Z
+% aliases: shared
+% novellum:end
+
+\\section{Beta}
+""",
+    )
+
+    output = io.StringIO()
+    error_output = io.StringIO()
+    with redirect_stdout(output), redirect_stderr(error_output):
+        exit_code = main(["--json", "show", "shared", "--cwd", str(tmp_path)])
+
+    payload = json.loads(output.getvalue())
+    assert exit_code == 1
+    assert error_output.getvalue() == ""
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "ambiguous_reference"
+    assert "ambiguous" in payload["error"]["message"]
 
 
 def test_rename_command_updates_note_id_and_filename(tmp_path: Path) -> None:

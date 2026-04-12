@@ -43,6 +43,7 @@ It also exists because my patience for opening a heavy note app just to write th
 * Linked LaTeX notes with metadata stored in comment blocks
 * Canonical IDs plus alias-based note resolution
 * Search across IDs, titles, tags, aliases, and body text
+* Machine-readable JSON output for editor and tooling integrations
 * Backlinks and broken-link diagnostics
 * Mermaid graph export for the note network
 * Research log workflow with dated `log` notes and a `today` command
@@ -101,6 +102,9 @@ novellum show
 novellum edit
 novellum show hk --no-interactive
 novellum edit operator-semigroup --no-interactive
+novellum --json list
+novellum --json search semigroup
+novellum --json show hk --no-interactive
 ```
 
 ### Graph workflow

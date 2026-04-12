@@ -32,7 +32,7 @@ from novellum.commands.show_note import show_command
 from novellum.commands.stitch_notes import stitch_command
 from novellum.commands.tag_note import tag_add_command, tag_remove_command
 from novellum.commands.today import today_command
-from novellum.output import set_plain_output
+from novellum.output import emit_error_json, json_output_enabled, set_json_output, set_plain_output
 from novellum.storage import DEFAULT_NOTE_TYPES
 
 
@@ -58,6 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(prog="novellum", description="A CLI for linked LaTeX research notes.")
     parser.add_argument("--plain", action="store_true", help="Disable Rich-styled output and use plain text.")
+    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON for supported commands.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init", help="Initialize a novellum workspace.")
@@ -212,7 +213,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     try:
         args = parser.parse_args(argv)
-        set_plain_output(args.plain)
+        set_json_output(args.json)
+        set_plain_output(args.plain or args.json)
 
         # Dispatch stays explicit instead of dynamic so command wiring is easy
         # to read while the CLI surface remains small.
@@ -342,9 +344,31 @@ def main(argv: list[str] | None = None) -> int:
             return today_command(cwd=Path(args.cwd))
         parser.error(f"Unknown command: {args.command}")
     except (FileExistsError, FileNotFoundError, LookupError, RuntimeError, ValueError) as error:
+        if json_output_enabled():
+            emit_error_json(code=_classify_error_code(error), message=str(error))
+            return 1
         print(f"Error: {error}", file=sys.stderr)
         return 1
     return 2
+
+
+def _classify_error_code(error: Exception) -> str:
+    """Map common command failures to stable machine-readable error codes."""
+
+    if isinstance(error, FileNotFoundError):
+        return "not_found"
+    if isinstance(error, FileExistsError):
+        return "already_exists"
+    if isinstance(error, LookupError):
+        lowered = str(error).casefold()
+        if "ambiguous" in lowered:
+            return "ambiguous_reference"
+        return "lookup_failed"
+    if isinstance(error, RuntimeError):
+        return "runtime_error"
+    if isinstance(error, ValueError):
+        return "invalid_input"
+    return "command_failed"
 
 
 if __name__ == "__main__":

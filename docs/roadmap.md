@@ -83,6 +83,15 @@ novellum alias add spectral-gap sgap
 
 ### Machine-Readable Output
 
-Commands like `list`, `search`, `links`, `backlinks`, and `broken` should
-eventually gain `--json` support for shell pipelines, editor integrations, and
-future TUI clients.
+Initial `--json` support now exists for:
+
+* `list`
+* `search`
+* `show`
+* `links`
+* `backlinks`
+* `broken`
+* `select`
+
+The next step is to keep those schemas stable and decide whether lifecycle or
+document commands should expose structured results too.

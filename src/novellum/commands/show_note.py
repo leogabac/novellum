@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from novellum.index import find_note, load_index
-from novellum.output import console, print_key_value_panel
+from novellum.output import console, emit_json, json_output_enabled, note_payload, print_key_value_panel
 from novellum.selection import select_note_reference
 from novellum.storage import find_workspace
 
@@ -41,6 +41,17 @@ def show_command(
     if resolved_reference is None:
         raise ValueError("Provide a note reference or install fzf for interactive selection.")
     note = find_note(index, resolved_reference)
+
+    if json_output_enabled():
+        emit_json(
+            {
+                "ok": True,
+                "command": "show",
+                "workspace_root": str(workspace.root),
+                "note": note_payload(note, workspace_root=workspace.root, include_body=True),
+            }
+        )
+        return 0
 
     print_key_value_panel(
         f"Note: {note.metadata.id}",

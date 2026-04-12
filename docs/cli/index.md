@@ -26,6 +26,33 @@ Novellum does not treat notes as opaque blobs in an app sandbox. It assumes:
 The CLI is mostly there to save you from repetitive maintenance and to give the
 workspace a useful graph-shaped brain.
 
+## Machine-Readable Output
+
+Novellum now supports a global `--json` flag for a first set of read/query
+commands. This is primarily for editor integrations, shell pipelines, and
+future tooling that should not scrape human-oriented table output.
+
+Currently supported:
+
+* `list`
+* `search`
+* `show`
+* `links`
+* `backlinks`
+* `broken`
+* `select`
+
+Example:
+
+```sh
+novellum --json list
+novellum --json show spectral-gap --no-interactive
+novellum --json broken
+```
+
+In JSON mode, command failures return a structured error object on stdout and a
+nonzero exit code.
+
 ## Core Workflow
 
 The usual rhythm is:

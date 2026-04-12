@@ -9,6 +9,20 @@ Examples:
 ```sh
 novellum list
 novellum list --type proof
+novellum --json list
 ```
 
 This is the plain inventory view for the workspace.
+
+With `--json`, the command emits a payload containing the workspace root,
+optional type filter, and a `notes` array. Each note includes:
+
+* `id`
+* `title`
+* `type`
+* `path`
+* `created`
+* `updated`
+* `tags`
+* `aliases`
+* `link_count`

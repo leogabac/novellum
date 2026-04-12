@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from rich.box import SIMPLE_HEAVY
@@ -11,6 +12,7 @@ from rich.table import Table
 
 console = Console()
 _PLAIN_OUTPUT = False
+_JSON_OUTPUT = False
 
 
 def set_plain_output(enabled: bool) -> None:
@@ -18,6 +20,74 @@ def set_plain_output(enabled: bool) -> None:
 
     global _PLAIN_OUTPUT
     _PLAIN_OUTPUT = enabled
+
+
+def set_json_output(enabled: bool) -> None:
+    """Toggle JSON rendering for machine-readable CLI output."""
+
+    global _JSON_OUTPUT
+    _JSON_OUTPUT = enabled
+
+
+def json_output_enabled() -> bool:
+    """Return whether machine-readable JSON output is enabled."""
+
+    return _JSON_OUTPUT
+
+
+def emit_json(payload: object) -> None:
+    """Serialize a JSON payload to stdout."""
+
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def emit_error_json(*, code: str, message: str, details: dict[str, object] | None = None) -> None:
+    """Emit a structured error payload for machine-readable clients."""
+
+    payload: dict[str, object] = {
+        "ok": False,
+        "error": {
+            "code": code,
+            "message": message,
+        },
+    }
+    if details:
+        payload["error"]["details"] = details
+    emit_json(payload)
+
+
+def note_payload(note, *, workspace_root: Path, include_body: bool = False, include_links: bool = True) -> dict[str, object]:
+    """Convert a note object into a stable JSON payload."""
+
+    payload: dict[str, object] = {
+        "id": note.metadata.id,
+        "title": note.metadata.title,
+        "type": note.metadata.note_type,
+        "path": str(note.path.relative_to(workspace_root)),
+        "created": note.metadata.created,
+        "updated": note.metadata.updated,
+        "tags": list(note.metadata.tags),
+        "aliases": list(note.metadata.aliases),
+    }
+    if include_links:
+        payload["link_count"] = len(note.links)
+    if include_body:
+        payload["body"] = note.body.rstrip()
+    return payload
+
+
+def indexed_link_payload(link) -> dict[str, object]:
+    """Convert an indexed link into a stable JSON payload."""
+
+    payload: dict[str, object] = {
+        "source_id": link.source_id,
+        "target": link.target,
+        "resolved_id": link.resolved_id,
+        "label": link.label,
+        "candidate_ids": list(link.candidate_ids or []),
+    }
+    payload["kind"] = "resolved" if link.resolved_id is not None else ("ambiguous" if link.candidate_ids else "missing")
+    return payload
 
 
 def print_empty(message: str) -> None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from novellum.index import load_index
+from novellum.output import emit_json, json_output_enabled
 from novellum.selection import select_note_references_iterative
 from novellum.storage import find_workspace
 
@@ -28,6 +29,16 @@ def select_command(cwd: Path = Path(".")) -> int:
     selected_ids = select_note_references_iterative(index)
     if selected_ids is None:
         raise RuntimeError("Interactive selection requires fzf to be installed.")
+    if json_output_enabled():
+        emit_json(
+            {
+                "ok": True,
+                "command": "select",
+                "workspace_root": str(workspace.root),
+                "selected_ids": selected_ids,
+            }
+        )
+        return 0
     for note_id in selected_ids:
         print(note_id)
     return 0

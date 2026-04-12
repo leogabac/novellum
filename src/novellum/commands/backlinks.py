@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from novellum.index import find_note, load_index
-from novellum.output import print_key_value_panel, print_link_table
+from novellum.output import emit_json, indexed_link_payload, json_output_enabled, print_key_value_panel, print_link_table
 from novellum.selection import select_note_reference
 from novellum.storage import find_workspace
 
@@ -42,6 +42,23 @@ def backlinks_command(
         raise ValueError("Provide a note reference or install fzf for interactive selection.")
     note = find_note(index, resolved_reference)
     backlinks = index.backlinks[note.metadata.id]
+
+    if json_output_enabled():
+        emit_json(
+            {
+                "ok": True,
+                "command": "backlinks",
+                "workspace_root": str(workspace.root),
+                "note": {
+                    "id": note.metadata.id,
+                    "title": note.metadata.title,
+                    "type": note.metadata.note_type,
+                    "path": str(note.path.relative_to(workspace.root)),
+                },
+                "backlinks": [indexed_link_payload(link) for link in backlinks],
+            }
+        )
+        return 0
 
     print_key_value_panel(
         f"Backlinks: {note.metadata.id}",
